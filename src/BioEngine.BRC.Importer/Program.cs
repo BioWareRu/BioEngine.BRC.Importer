@@ -278,7 +278,7 @@ namespace BioEngine.BRC.Importer
                     DatePublished = fileExport.Date,
                     IsPublished = true,
                     AuthorId = fileExport.AuthorId,
-                    Blocks = new List<PostBlock>()
+                    Blocks = new List<ContentBlock>()
                 };
                 if (!string.IsNullOrEmpty(fileExport.Desc))
                 {
@@ -433,7 +433,7 @@ namespace BioEngine.BRC.Importer
                         DatePublished = picsGroup.First().Date,
                         IsPublished = true,
                         AuthorId = picsGroup.First().AuthorId,
-                        Blocks = new List<PostBlock>()
+                        Blocks = new List<ContentBlock>()
                     };
 
                     foreach (var galleryPicExport in picsGroup)
@@ -583,7 +583,7 @@ namespace BioEngine.BRC.Importer
                     DatePublished = articleExport.Date,
                     IsPublished = articleExport.Pub == 1,
                     AuthorId = articleExport.AuthorId,
-                    Blocks = new List<PostBlock>()
+                    Blocks = new List<ContentBlock>()
                 };
 
                 await AddText(post, articleExport.Text, data);
@@ -641,7 +641,7 @@ namespace BioEngine.BRC.Importer
                     DatePublished = newsExport.LastChangeDate,
                     IsPublished = newsExport.Pub == 1,
                     AuthorId = newsExport.AuthorId,
-                    Blocks = new List<PostBlock>()
+                    Blocks = new List<ContentBlock>()
                 };
 
                 // <iframe frameborder="0" height="315" src="https://www.youtube.com/embed/v18ZpMP6i5I" width="560"></iframe>
@@ -695,7 +695,7 @@ namespace BioEngine.BRC.Importer
         private async Task AddText(Post post, string text, Export data)
         {
             // iframe
-            var extractedBlocks = new List<PostBlock>();
+            var extractedBlocks = new List<ContentBlock>();
             var currentText = ExtractFrameBlocks(text, extractedBlocks, _iframeWithPRegex);
             currentText = ExtractFrameBlocks(currentText, extractedBlocks, _iframeRegex);
             currentText = await ExtractImageBlocks(post, currentText, extractedBlocks, data);
@@ -744,7 +744,7 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private string ExtractFrameBlocks(string text, List<PostBlock> extractedBlocks, Regex regex)
+        private string ExtractFrameBlocks(string text, List<ContentBlock> extractedBlocks, Regex regex)
         {
             var matches = regex.Matches(text);
             if (matches.Count > 0)
@@ -785,7 +785,7 @@ namespace BioEngine.BRC.Importer
             return text;
         }
 
-        private async Task<string> ExtractImageBlocks(Post post, string text, List<PostBlock> extractedBlocks,
+        private async Task<string> ExtractImageBlocks(Post post, string text, List<ContentBlock> extractedBlocks,
             Export data)
         {
             var matches = _imageRegex.Matches(text);
@@ -958,7 +958,7 @@ namespace BioEngine.BRC.Importer
             _logger.LogCritical($"Tags: {await _dbContext.Set<Tag>().CountAsync()}");
             _logger.LogCritical($"Properties: {await _dbContext.Set<PropertiesRecord>().CountAsync()}");
             _logger.LogCritical($"Posts: {await _dbContext.Set<Post>().CountAsync()}");
-            _logger.LogCritical($"Blocks: {await _dbContext.Set<PostBlock>().CountAsync()}");
+            _logger.LogCritical($"Blocks: {await _dbContext.Set<ContentBlock>().CountAsync()}");
         }
 
         private readonly Dictionary<string, StorageItem> _uploaded = new Dictionary<string, StorageItem>();
