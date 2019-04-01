@@ -692,13 +692,13 @@ namespace BioEngine.BRC.Importer
         private readonly Regex _imageRegex = new Regex("<p.*><img.*src=\"(.*?)\".*></p>",
             RegexOptions.Multiline & RegexOptions.IgnoreCase);
 
-        private async Task AddText(Post post, string text, Export data)
+        private async Task AddText(IContentEntity entity, string text, Export data)
         {
             // iframe
             var extractedBlocks = new List<ContentBlock>();
             var currentText = ExtractFrameBlocks(text, extractedBlocks, _iframeWithPRegex);
             currentText = ExtractFrameBlocks(currentText, extractedBlocks, _iframeRegex);
-            currentText = await ExtractImageBlocks(post, currentText, extractedBlocks, data);
+            currentText = await ExtractImageBlocks(entity, currentText, extractedBlocks, data);
 
 
             if (extractedBlocks.Count > 0)
@@ -712,10 +712,10 @@ namespace BioEngine.BRC.Importer
                     var textParts = currentText.Split(replace);
                     if (!string.IsNullOrWhiteSpace(textParts[0].Trim()))
                     {
-                        post.Blocks.Add(new TextBlock
+                        entity.Blocks.Add(new TextBlock
                         {
                             Id = Guid.NewGuid(),
-                            Position = post.Blocks.Count,
+                            Position = entity.Blocks.Count,
                             Data = new TextBlockData
                             {
                                 Text = textParts[0].Trim()
@@ -724,18 +724,18 @@ namespace BioEngine.BRC.Importer
                     }
 
                     var block = extractedBlocks[blockId - 1];
-                    block.Position = post.Blocks.Count;
-                    post.Blocks.Add(block);
+                    block.Position = entity.Blocks.Count;
+                    entity.Blocks.Add(block);
                     currentText = textParts[1].Trim();
                 }
             }
 
             if (!string.IsNullOrWhiteSpace(currentText))
             {
-                post.Blocks.Add(new TextBlock
+                entity.Blocks.Add(new TextBlock
                 {
                     Id = Guid.NewGuid(),
-                    Position = post.Blocks.Count,
+                    Position = entity.Blocks.Count,
                     Data = new TextBlockData
                     {
                         Text = currentText
@@ -785,7 +785,7 @@ namespace BioEngine.BRC.Importer
             return text;
         }
 
-        private async Task<string> ExtractImageBlocks(Post post, string text, List<ContentBlock> extractedBlocks,
+        private async Task<string> ExtractImageBlocks(IContentEntity post, string text, List<ContentBlock> extractedBlocks,
             Export data)
         {
             var matches = _imageRegex.Matches(text);
@@ -852,11 +852,12 @@ namespace BioEngine.BRC.Importer
                     DateAdded = DateTimeOffset.UtcNow,
                     DateUpdated = DateTimeOffset.UtcNow,
                     DatePublished = DateTimeOffset.UtcNow,
-                    ShortDescription = topicExport.Desc,
                     Data = new TopicData(),
                     Properties = new List<PropertiesEntry>(),
                     Hashtag = string.Empty
                 };
+
+                await AddText(topic, topicExport.Desc, data);
                 var logo = await UploadFromUrlAsync(topicExport.Logo, Path.Combine("sections", "topics")) ??
                            emptyLogo;
                 topic.Logo = logo;
@@ -884,13 +885,13 @@ namespace BioEngine.BRC.Importer
                     DateAdded = gameExport.Date,
                     DateUpdated = gameExport.Date,
                     DatePublished = gameExport.Date,
-                    ShortDescription = gameExport.Desc,
                     Data = new GameData
                     {
                         Platforms = new Platform[0]
                     },
                     Properties = new List<PropertiesEntry>()
                 };
+                await AddText(game, gameExport.Desc, data);
                 if (gameExport.DeveloperId > 0 && _developersMap.ContainsKey(gameExport.DeveloperId))
                 {
                     game.ParentId = _developersMap[gameExport.DeveloperId];
@@ -929,7 +930,6 @@ namespace BioEngine.BRC.Importer
                     SiteIds = new[] {site.Id},
                     DateAdded = DateTimeOffset.UtcNow,
                     DatePublished = DateTimeOffset.UtcNow,
-                    ShortDescription = dev.Desc,
                     IsPublished = true,
                     DateUpdated = DateTimeOffset.UtcNow,
                     Hashtag = string.Empty,
@@ -938,7 +938,7 @@ namespace BioEngine.BRC.Importer
                         Persons = new Person[0]
                     }
                 };
-
+                await AddText(developer, dev.Desc, data);
                 var logo = await UploadFromUrlAsync(dev.Logo, Path.Combine("sections", "developers")) ?? emptyLogo;
 
                 developer.Logo = logo;
