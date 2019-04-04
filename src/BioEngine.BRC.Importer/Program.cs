@@ -17,6 +17,7 @@ using BioEngine.Core.Storage;
 using BioEngine.Extra.Facebook;
 using BioEngine.Extra.IPB.Properties;
 using BioEngine.Extra.Twitter;
+using HtmlAgilityPack;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.EntityFrameworkCore;
@@ -699,6 +700,7 @@ namespace BioEngine.BRC.Importer
             var currentText = ExtractFrameBlocks(text, extractedBlocks, _iframeWithPRegex);
             currentText = ExtractFrameBlocks(currentText, extractedBlocks, _iframeRegex);
             currentText = await ExtractImageBlocks(entity, currentText, extractedBlocks, data);
+            currentText = ExtractBlockQuotes(currentText, extractedBlocks, data);
 
 
             if (extractedBlocks.Count > 0)
@@ -744,6 +746,31 @@ namespace BioEngine.BRC.Importer
             }
         }
 
+        public string ExtractBlockQuotes(string currentText, List<ContentBlock> extractedBlocks, Export data)
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(currentText);
+            var quotes = doc.DocumentNode.Descendants("blockquote").ToArray();
+            if (!quotes.Any()) return currentText;
+            foreach (var quote in quotes)
+            {
+                extractedBlocks.Add(new QuoteBlock
+                {
+                    Id = Guid.NewGuid(),
+                    Data = new QuoteBlockData
+                    {
+                        Text = quote.InnerHtml
+                    }
+                });
+
+                var newNodeStr = $"[block-{extractedBlocks.Count}]";
+                var newNode = HtmlNode.CreateNode(newNodeStr);
+                quote.ParentNode.ReplaceChild(newNode, quote);
+            }
+
+            return doc.DocumentNode.InnerHtml;
+        }
+
         private string ExtractFrameBlocks(string text, List<ContentBlock> extractedBlocks, Regex regex)
         {
             var matches = regex.Matches(text);
@@ -785,7 +812,8 @@ namespace BioEngine.BRC.Importer
             return text;
         }
 
-        private async Task<string> ExtractImageBlocks(IContentEntity post, string text, List<ContentBlock> extractedBlocks,
+        private async Task<string> ExtractImageBlocks(IContentEntity post, string text,
+            List<ContentBlock> extractedBlocks,
             Export data)
         {
             var matches = _imageRegex.Matches(text);
