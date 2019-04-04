@@ -31,7 +31,7 @@ namespace BioEngine.BRC.Importer
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static async Task Main()
         {
             var builder = new ConfigurationBuilder();
             builder.AddUserSecrets(typeof(Program).Assembly);
@@ -132,7 +132,7 @@ namespace BioEngine.BRC.Importer
 
                 // files
                 _logger.LogWarning("Files");
-                await ImportFilesAsync(data, site, posts);
+                ImportFiles(data, site, posts);
                 // pictures
                 _logger.LogWarning("Gallery");
                 await ImportGalleryAsync(data, site, posts);
@@ -187,7 +187,7 @@ namespace BioEngine.BRC.Importer
             catch (Exception ex)
             {
                 _logger.LogError(ex, ex.Message);
-                await RollbackAsync(transaction);
+                Rollback(transaction);
                 return false;
             }
 
@@ -201,7 +201,7 @@ namespace BioEngine.BRC.Importer
             return true;
         }
 
-        private async Task ImportFilesAsync(Export data, Site site, List<Post> posts)
+        private void ImportFiles(Export data, Site site, List<Post> posts)
         {
             var fileCatsMap = new Dictionary<FileCatExport, Tag>();
             foreach (var cat in data.FilesCats)
@@ -1014,7 +1014,7 @@ namespace BioEngine.BRC.Importer
             return file;
         }
 
-        private async Task RollbackAsync(IDbContextTransaction transaction)
+        private void Rollback(IDbContextTransaction transaction)
         {
             transaction.Rollback();
         }
