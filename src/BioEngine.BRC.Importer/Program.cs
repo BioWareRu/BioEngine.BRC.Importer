@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -193,6 +193,7 @@ namespace BioEngine.BRC.Importer
                 return false;
             }
 
+            await _storage.FinishBatchAsync();
             await _dbContext.SaveChangesAsync();
             await PrintStatsAsync();
 
