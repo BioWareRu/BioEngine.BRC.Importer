@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -104,6 +104,7 @@ namespace BioEngine.BRC.Importer
                 Properties = new List<PropertiesEntry>()
             };
             _dbContext.Add(site);
+            _storage.BeginBatch();
 
             var emptyLogo = await UploadFromUrlAsync("https://dummyimage.com/200x200/000/fff", "tmp", "dummy.png");
             try
@@ -882,7 +883,8 @@ namespace BioEngine.BRC.Importer
                     DatePublished = DateTimeOffset.UtcNow,
                     Data = new TopicData(),
                     Properties = new List<PropertiesEntry>(),
-                    Hashtag = string.Empty
+                    Hashtag = string.Empty,
+                    Blocks = new List<ContentBlock>()
                 };
 
                 await AddText(topic, topicExport.Desc, data);
@@ -917,7 +919,8 @@ namespace BioEngine.BRC.Importer
                     {
                         Platforms = new Platform[0]
                     },
-                    Properties = new List<PropertiesEntry>()
+                    Properties = new List<PropertiesEntry>(),
+                    Blocks = new List<ContentBlock>()
                 };
                 await AddText(game, gameExport.Desc, data);
                 if (gameExport.DeveloperId > 0 && _developersMap.ContainsKey(gameExport.DeveloperId))
@@ -964,7 +967,8 @@ namespace BioEngine.BRC.Importer
                     Data = new DeveloperData
                     {
                         Persons = new Person[0]
-                    }
+                    },
+                    Blocks = new List<ContentBlock>()
                 };
                 await AddText(developer, dev.Desc, data);
                 var logo = await UploadFromUrlAsync(dev.Logo, Path.Combine("sections", "developers")) ?? emptyLogo;
