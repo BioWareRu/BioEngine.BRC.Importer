@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using BioEngine.BRC.Domain.Entities;
+using BioEngine.BRC.Domain.Entities.Blocks;
 using BioEngine.Core;
 using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
@@ -794,6 +795,32 @@ namespace BioEngine.BRC.Importer
                                 YoutubeId = ytId
                             }
                         });
+                    }
+                    else if (srcUrl.Contains("player.twitch.tv"))
+                    {
+                        var block = new TwitchBlock
+                        {
+                            Id = Guid.NewGuid(),
+                            Data = new TwitchBlockData()
+                        };
+                        var uri = new Uri(srcUrl);
+                        var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+                        if (queryParams.ContainsKey("video"))
+                        {
+                            block.Data.VideoId = queryParams["video"].First();
+                        }
+
+                        if (queryParams.ContainsKey("channel"))
+                        {
+                            block.Data.ChannelId = queryParams["channel"].First();
+                        }
+
+                        if (queryParams.ContainsKey("collection"))
+                        {
+                            block.Data.CollectionId = queryParams["collection"].First();
+                        }
+
+                        extractedBlocks.Add(block);
                     }
                     else
                     {
