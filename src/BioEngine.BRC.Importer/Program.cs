@@ -1064,6 +1064,7 @@ namespace BioEngine.BRC.Importer
                 IsPublished = true,
                 DatePublished = date,
                 FilePath = $"files{path}",
+                Path = Path.GetDirectoryName($"files{path}").Replace("\\", "/"),
                 FileSize = size,
                 Type = StorageItemType.Other,
                 PublicUri = new Uri($"https://s3.bioware.ru/files/{path}")
