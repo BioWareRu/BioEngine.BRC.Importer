@@ -164,7 +164,7 @@ namespace BioEngine.BRC.Importer
                         await _propertiesProvider.SetAsync(new TwitterContentPropertiesSet
                         {
                             TweetId = news.TwitterId.Value
-                        }, post);
+                        }, post, site.Id);
                     }
 
                     if (!string.IsNullOrEmpty(news.FacebookId))
@@ -172,7 +172,7 @@ namespace BioEngine.BRC.Importer
                         await _propertiesProvider.SetAsync(new FacebookContentPropertiesSet
                         {
                             PostId = news.FacebookId
-                        }, post);
+                        }, post, site.Id);
                     }
 
                     if (news.ForumTopicId > 0 && news.ForumPostId > 0)
