@@ -16,7 +16,7 @@ using BioEngine.Core.Properties;
 using BioEngine.Core.Seo;
 using BioEngine.Core.Storage;
 using BioEngine.Extra.Facebook;
-using BioEngine.Extra.IPB.Properties;
+using BioEngine.Extra.IPB.Entities;
 using BioEngine.Extra.Twitter;
 using HtmlAgilityPack;
 using JetBrains.Annotations;
@@ -177,11 +177,13 @@ namespace BioEngine.BRC.Importer
 
                     if (news.ForumTopicId > 0 && news.ForumPostId > 0)
                     {
-                        await _propertiesProvider.SetAsync(new IPBContentPropertiesSet
+                        _dbContext.Add(new IPBContentSettings
                         {
+                            Type = post.GetType().FullName,
+                            ContentId = post.Id,
                             TopicId = news.ForumTopicId.Value,
                             PostId = news.ForumPostId.Value
-                        }, post);
+                        });
                     }
                 }
 
@@ -630,7 +632,8 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private async Task ImportNewsAsync(Export data, Site site, List<Post> posts, Dictionary<NewsExport, Post> newsMap)
+        private async Task ImportNewsAsync(Export data, Site site, List<Post> posts,
+            Dictionary<NewsExport, Post> newsMap)
         {
             foreach (var newsExport in data.News.OrderByDescending(n => n.Id))
             {
