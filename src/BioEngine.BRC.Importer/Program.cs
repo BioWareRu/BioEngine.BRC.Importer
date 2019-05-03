@@ -444,26 +444,47 @@ namespace BioEngine.BRC.Importer
 
                     foreach (var galleryPicExport in picsGroup)
                     {
-                        var block = new GalleryBlock
+                        if (galleryPicExport.Files.Count == 1)
                         {
-                            Id = Guid.NewGuid(),
-                            Position = 1,
-                            Data = new GalleryBlockData()
-                        };
-                        var pictures = new List<StorageItem>();
-                        foreach (var picFile in galleryPicExport.Files)
-                        {
+                            var block = new PictureBlock
+                            {
+                                Id = Guid.NewGuid(),
+                                Position = 1,
+                                Data = new PictureBlockData()
+                            };
+                            var picFile = galleryPicExport.Files.First();
                             var pic = await UploadFromUrlAsync(picFile.Url,
                                 $"posts/{post.DateAdded.Year}/{post.DateAdded.Month}",
                                 picFile.FileName);
                             if (pic != null)
                             {
-                                pictures.Add(pic);
+                                block.Data.Picture = pic;
+                                post.Blocks.Add(block);
                             }
                         }
+                        else
+                        {
+                            var block = new GalleryBlock
+                            {
+                                Id = Guid.NewGuid(),
+                                Position = 1,
+                                Data = new GalleryBlockData()
+                            };
+                            var pictures = new List<StorageItem>();
+                            foreach (var picFile in galleryPicExport.Files)
+                            {
+                                var pic = await UploadFromUrlAsync(picFile.Url,
+                                    $"posts/{post.DateAdded.Year}/{post.DateAdded.Month}",
+                                    picFile.FileName);
+                                if (pic != null)
+                                {
+                                    pictures.Add(pic);
+                                }
+                            }
 
-                        block.Data.Pictures = pictures.ToArray();
-                        post.Blocks.Add(block);
+                            block.Data.Pictures = pictures.ToArray();
+                            post.Blocks.Add(block);
+                        }
 
                         if (!string.IsNullOrEmpty(galleryPicExport.Desc))
                         {
@@ -881,12 +902,12 @@ namespace BioEngine.BRC.Importer
                     var item = await UploadFromUrlAsync(imgUrl, $"posts/{post.DateAdded.Year}/{post.DateAdded.Month}");
                     if (item != null)
                     {
-                        extractedBlocks.Add(new GalleryBlock
+                        extractedBlocks.Add(new PictureBlock
                         {
                             Id = Guid.NewGuid(),
-                            Data = new GalleryBlockData
+                            Data = new PictureBlockData
                             {
-                                Pictures = new[] {item}
+                                Picture = item
                             }
                         });
 
