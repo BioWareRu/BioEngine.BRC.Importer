@@ -261,7 +261,7 @@ namespace BioEngine.BRC.Importer
                 var tag = new Tag
                 {
                     Id = Guid.NewGuid(),
-                    Name = tagText,
+                    Title = tagText,
                     IsPublished = true,
                     DateAdded = DateTimeOffset.UtcNow,
                     DateUpdated = DateTimeOffset.UtcNow,
@@ -417,7 +417,7 @@ namespace BioEngine.BRC.Importer
                 var tag = new Tag
                 {
                     Id = Guid.NewGuid(),
-                    Name = tagText,
+                    Title = tagText,
                     IsPublished = true,
                     DateAdded = DateTimeOffset.UtcNow,
                     DateUpdated = DateTimeOffset.UtcNow,
@@ -587,7 +587,7 @@ namespace BioEngine.BRC.Importer
                 var tag = new Tag
                 {
                     Id = Guid.NewGuid(),
-                    Name = tagText,
+                    Title = tagText,
                     IsPublished = true,
                     DateAdded = DateTimeOffset.UtcNow,
                     DateUpdated = DateTimeOffset.UtcNow,
