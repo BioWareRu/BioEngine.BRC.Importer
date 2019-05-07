@@ -31,9 +31,9 @@ using Serilog.Events;
 
 namespace BioEngine.BRC.Importer
 {
-    class Program
+    static class Program
     {
-        static async Task Main()
+        public static async Task Main()
         {
             var builder = new ConfigurationBuilder();
             builder.AddUserSecrets(typeof(Program).Assembly);
