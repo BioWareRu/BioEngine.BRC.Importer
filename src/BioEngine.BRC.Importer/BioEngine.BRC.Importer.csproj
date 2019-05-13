@@ -9,15 +9,18 @@
     <ItemGroup>
         <PackageReference Include="HtmlAgilityPack" Version="1.11.4"/>
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0-preview5.19227.9"/>
-        <PackageReference Include="BioEngine.Core.Infra" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Core.Infra')"/>
+        <PackageReference Include="BioEngine.Core.Logging.Loki" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Core.Infra')"/>
+        <PackageReference Include="BioEngine.Core.Seo" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Core')"/>
         <PackageReference Include="BioEngine.BRC.Domain" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.BRC.Domain')"/>
         <PackageReference Include="BioEngine.Extra.IPB" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Extra.IPB')"/>
         <PackageReference Include="BioEngine.Extra.Twitter" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Extra.Twitter')"/>
         <PackageReference Include="BioEngine.Extra.Facebook" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Extra.Facebook')"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0-preview5.19227.9"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\..\BioEngine.Core.Infra\src\BioEngine.Core.Infra\BioEngine.Core.Infra.csproj" Condition="Exists('..\..\..\BioEngine.Core.Infra')"/>
         <ProjectReference Include="..\..\..\BioEngine.BRC.Domain\src\BioEngine.BRC.Domain\BioEngine.BRC.Domain.csproj" Condition="Exists('..\..\..\BioEngine.BRC.Domain')"/>
+        <ProjectReference Include="..\..\..\BioEngine.Core\src\BioEngine.Core.Seo\BioEngine.Core.Seo.csproj" Condition="Exists('..\..\..\BioEngine.Core')"/>
+        <ProjectReference Include="..\..\..\BioEngine.Core.Infra\src\BioEngine.Core.Logging.Loki\BioEngine.Core.Logging.Loki.csproj" Condition="Exists('..\..\..\BioEngine.Core.Infra')"/>
         <ProjectReference Include="..\..\..\BioEngine.Extra.IPB\src\BioEngine.Extra.IPB\BioEngine.Extra.IPB.csproj" Condition="Exists('..\..\..\BioEngine.Extra.IPB')"/>
         <ProjectReference Include="..\..\..\BioEngine.Extra.Twitter\src\BioEngine.Extra.Twitter\BioEngine.Extra.Twitter.csproj" Condition="Exists('..\..\..\BioEngine.Extra.Twitter')"/>
         <ProjectReference Include="..\..\..\BioEngine.Extra.Facebook\src\BioEngine.Extra.Facebook\BioEngine.Extra.Facebook.csproj" Condition="Exists('..\..\..\BioEngine.Extra.Facebook')"/>
