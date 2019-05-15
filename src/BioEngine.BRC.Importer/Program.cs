@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using BioEngine.BRC.Common;
 using BioEngine.BRC.Domain;
 using BioEngine.Core.Logging.Loki;
 using BioEngine.Core.Seo;
