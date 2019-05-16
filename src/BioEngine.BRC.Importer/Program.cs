@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using BioEngine.BRC.Common;
-using BioEngine.BRC.Domain;
 using BioEngine.Core.Logging.Loki;
 using BioEngine.Core.Seo;
+using BioEngine.Extra.Facebook;
 using BioEngine.Extra.IPB;
+using BioEngine.Extra.Twitter;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,13 +27,31 @@ namespace BioEngine.BRC.Importer
                     collection.AddSingleton<IHostedService, ImporterService>();
                 })
                 .AddPostgresDb()
-                .AddModule<BrcDomainModule>()
+                .AddBrcDomain()
                 .AddElasticSearch()
                 .AddS3Storage()
                 .AddModule<LokiLoggingModule, LokiLoggingConfig>((configuration, environment) =>
                     new LokiLoggingConfig(configuration["BRC_LOKI_URL"]))
+                .AddModule<IPBSiteModule, IPBModuleConfig>((configuration, env) =>
+                {
+                    if (!Uri.TryCreate(configuration["BE_IPB_URL"], UriKind.Absolute, out var ipbUrl))
+                    {
+                        throw new ArgumentException($"Can't parse IPB url; {configuration["BE_IPB_URL"]}");
+                    }
+
+                    return new IPBModuleConfig(ipbUrl)
+                    {
+                        ApiClientId = configuration["BE_IPB_OAUTH_CLIENT_ID"],
+                        ApiClientSecret = configuration["BE_IPB_OAUTH_CLIENT_SECRET"],
+                        CallbackPath = "/login/ipb",
+                        AuthorizationEndpoint = configuration["BE_IPB_AUTHORIZATION_ENDPOINT"],
+                        TokenEndpoint = configuration["BE_IPB_TOKEN_ENDPOINT"],
+                        ApiReadonlyKey = configuration["BE_IPB_API_READONLY_KEY"]
+                    };
+                })
                 .AddModule<SeoModule>()
-                .AddModule<IPBSiteModule>()
+                .AddModule<TwitterModule>()
+                .AddModule<FacebookModule>()
                 .GetHostBuilder().UseEnvironment("Development")
                 .Build();
 
