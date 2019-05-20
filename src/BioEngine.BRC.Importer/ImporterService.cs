@@ -1,35 +1,42 @@
 using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+using Flurl.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BioEngine.BRC.Importer
 {
     public class ImporterService : IHostedService
     {
-        private readonly IConfiguration _configuration;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<ImporterService> _logger;
+        private readonly ImporterOptions _options;
 
-        public ImporterService(IConfiguration configuration, IServiceProvider serviceProvider)
+        public ImporterService(IServiceProvider serviceProvider,
+            IOptions<ImporterOptions> options, ILogger<ImporterService> logger)
         {
-            _configuration = configuration;
             _serviceProvider = serviceProvider;
+            _logger = logger;
+            _options = options.Value;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            var dataJson = await File.ReadAllTextAsync("export.json", cancellationToken);
-            var data = JsonConvert.DeserializeObject<Export>(dataJson);
-            var siteId = Guid.Parse(_configuration["BE_SITE_ID"]);
+            _logger.LogInformation("Download data from {apiUri}", _options.ApiUri);
+            var data = await _options.ApiUri.WithHeader("Authorization", $"Bearer {_options.ApiToken}")
+                .GetJsonAsync<Export>(cancellationToken);
+            _logger.LogInformation("Data is downloaded");
             using (var scope = _serviceProvider.CreateScope())
             {
                 var importer = scope.ServiceProvider.GetRequiredService<Importer>();
-                await importer.ImportAsync(siteId, data);
+                _logger.LogInformation("Import for site {siteId}", _options.SiteId);
+                await importer.ImportAsync(_options.SiteId, data);
             }
+
+            _logger.LogInformation("Import done");
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

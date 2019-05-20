@@ -21,10 +21,16 @@ namespace BioEngine.BRC.Importer
         {
             var bioEngine = new Core.BioEngine(args);
             var host = bioEngine
-                .ConfigureServices(collection =>
+                .ConfigureServices((hostBuilder, collection) =>
                 {
                     collection.AddScoped<Importer>();
                     collection.AddSingleton<IHostedService, ImporterService>();
+                    collection.Configure<ImporterOptions>(options =>
+                    {
+                        options.ApiUri = hostBuilder.Configuration["BRC_EXPORT_API_URL"];
+                        options.ApiToken = hostBuilder.Configuration["BRC_EXPORT_API_TOKEN"];
+                        options.SiteId = Guid.Parse(hostBuilder.Configuration["BRC_IMPORT_SITE_ID"]);
+                    });
                 })
                 .AddPostgresDb()
                 .AddBrcDomain()
