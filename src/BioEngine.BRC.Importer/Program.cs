@@ -58,7 +58,7 @@ namespace BioEngine.BRC.Importer
                 .AddModule<SeoModule>()
                 .AddModule<TwitterModule>()
                 .AddModule<FacebookModule>()
-                .GetHostBuilder().UseEnvironment("Development")
+                .GetHostBuilder()
                 .Build();
 
             await host.RunAsync();
