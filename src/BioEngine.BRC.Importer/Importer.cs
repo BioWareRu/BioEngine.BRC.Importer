@@ -126,7 +126,8 @@ namespace BioEngine.BRC.Importer
                         {
                             Type = post.GetType().FullName,
                             ContentId = post.Id,
-                            PostId = news.FacebookId
+                            PostId = news.FacebookId,
+                            SiteIds = new[] {site.Id}
                         });
                     }
 
@@ -137,7 +138,8 @@ namespace BioEngine.BRC.Importer
                             Type = post.GetType().FullName,
                             ContentId = post.Id,
                             TopicId = news.ForumTopicId.Value,
-                            PostId = news.ForumPostId.Value
+                            PostId = news.ForumPostId.Value,
+                            SiteIds = new[] {site.Id}
                         });
                     }
                 }
