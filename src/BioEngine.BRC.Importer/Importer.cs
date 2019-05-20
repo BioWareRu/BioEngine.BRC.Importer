@@ -114,10 +114,13 @@ namespace BioEngine.BRC.Importer
                 {
                     if (news.TwitterId > 0)
                     {
-                        await _propertiesProvider.SetAsync(new TwitterContentPropertiesSet
+                        _dbContext.Add(new TwitterPublishRecord
                         {
-                            TweetId = news.TwitterId.Value
-                        }, post, site.Id);
+                            Type = post.GetType().FullName,
+                            ContentId = post.Id,
+                            TweetId = news.TwitterId.Value,
+                            SiteIds = new[] {site.Id}
+                        });
                     }
 
                     if (!string.IsNullOrEmpty(news.FacebookId))
