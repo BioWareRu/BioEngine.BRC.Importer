@@ -9,6 +9,7 @@ using BioEngine.Extra.Facebook;
 using BioEngine.Extra.IPB;
 using BioEngine.Extra.Twitter;
 using JetBrains.Annotations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -58,7 +59,11 @@ namespace BioEngine.BRC.Importer
                 .AddModule<SeoModule>()
                 .AddModule<TwitterModule>()
                 .AddModule<FacebookModule>()
-                .GetHostBuilder()
+                .GetHostBuilder().ConfigureAppConfiguration(builder =>
+                {
+                    builder.AddUserSecrets<Importer>();
+                    builder.AddEnvironmentVariables();
+                })
                 .Build();
 
             await host.RunAsync();
