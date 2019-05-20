@@ -952,17 +952,10 @@ namespace BioEngine.BRC.Importer
             _logger.LogCritical($"Blocks: {(await _dbContext.Set<ContentBlock>().CountAsync()).ToString()}");
         }
 
-        private readonly Dictionary<string, StorageItem> _uploaded = new Dictionary<string, StorageItem>();
-
         private readonly Regex _thumbUrlRegex = new Regex("gallery\\/thumb\\/([0-9]+)\\/[0-9]+\\/[0-9]+\\/?([0-9]+)?");
 
         private async Task<StorageItem> UploadFromUrlAsync(string url, string path, string fileName = null)
         {
-            if (_uploaded.ContainsKey(url))
-            {
-                return _uploaded[url];
-            }
-
             fileName ??= Path.GetFileName(url);
             if (!string.IsNullOrEmpty(fileName))
             {
@@ -971,7 +964,6 @@ namespace BioEngine.BRC.Importer
                     _logger.LogInformation($"Downloading file from url {url}");
                     var fileData = await _httpClient.GetByteArrayAsync(url);
                     var item = await _storage.SaveFileAsync(fileData, fileName, path);
-                    _uploaded.Add(url, item);
                     return item;
                 }
                 catch (Exception ex)
@@ -980,7 +972,6 @@ namespace BioEngine.BRC.Importer
                 }
             }
 
-            _uploaded.Add(url, null);
             return null;
         }
 
