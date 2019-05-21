@@ -98,7 +98,9 @@ namespace BioEngine.BRC.Importer
                 {
                     var version = new PostVersion
                     {
-                        Id = Guid.NewGuid(), PostId = post.Id, IsPublished = true,
+                        Id = Guid.NewGuid(),
+                        PostId = post.Id,
+                        IsPublished = true,
                         DatePublished = DateTimeOffset.UtcNow,
                     };
                     version.SetPost(post);
@@ -241,12 +243,7 @@ namespace BioEngine.BRC.Importer
                     {
                         post.Blocks.Add(new TextBlock
                         {
-                            Id = Guid.NewGuid(),
-                            Position = 0,
-                            Data = new TextBlockData
-                            {
-                                Text = fileExport.Desc
-                            }
+                            Id = Guid.NewGuid(), Position = 0, Data = new TextBlockData {Text = fileExport.Desc}
                         });
                     }
 
@@ -256,10 +253,7 @@ namespace BioEngine.BRC.Importer
                         {
                             Id = Guid.NewGuid(),
                             Position = 0,
-                            Data = new YoutubeBlockData
-                            {
-                                YoutubeId = fileExport.YtId
-                            }
+                            Data = new YoutubeBlockData {YoutubeId = fileExport.YtId}
                         });
                     }
                     else
@@ -267,15 +261,7 @@ namespace BioEngine.BRC.Importer
                         var file = UploadByPath(fileExport.Link, fileExport.Size, fileExport.Date);
 
                         post.Blocks.Add(
-                            new FileBlock
-                            {
-                                Id = Guid.NewGuid(),
-                                Position = 0,
-                                Data = new FileBlockData
-                                {
-                                    File = file
-                                }
-                            });
+                            new FileBlock {Id = Guid.NewGuid(), Position = 0, Data = new FileBlockData {File = file}});
                     }
 
                     var cat = data.FilesCats.First(c => c.Id == fileExport.CatId);
@@ -363,15 +349,25 @@ namespace BioEngine.BRC.Importer
 
                         foreach (var galleryPicExport in picsGroup)
                         {
-                            if (galleryPicExport.Files.Count == 1)
+                            var pictures = new List<StorageItem>();
+                            foreach (var picFile in galleryPicExport.Files)
+                            {
+                                var pic = await UploadFromUrlAsync(picFile.Url,
+                                    $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
+                                    picFile.FileName);
+                                if (pic != null)
+                                {
+                                    pictures.Add(pic);
+                                }
+                            }
+
+                            if (pictures.Count == 1)
                             {
                                 var block = new PictureBlock
                                 {
-                                    Id = Guid.NewGuid(),
-                                    Position = 1,
-                                    Data = new PictureBlockData()
+                                    Id = Guid.NewGuid(), Position = 1, Data = new PictureBlockData()
                                 };
-                                var picFile = galleryPicExport.Files.First();
+                                var picFile = pictures[0];
                                 var pic = await UploadFromUrlAsync(picFile.Url,
                                     $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
                                     picFile.FileName);
@@ -385,21 +381,8 @@ namespace BioEngine.BRC.Importer
                             {
                                 var block = new GalleryBlock
                                 {
-                                    Id = Guid.NewGuid(),
-                                    Position = 1,
-                                    Data = new GalleryBlockData()
+                                    Id = Guid.NewGuid(), Position = 1, Data = new GalleryBlockData()
                                 };
-                                var pictures = new List<StorageItem>();
-                                foreach (var picFile in galleryPicExport.Files)
-                                {
-                                    var pic = await UploadFromUrlAsync(picFile.Url,
-                                        $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
-                                        picFile.FileName);
-                                    if (pic != null)
-                                    {
-                                        pictures.Add(pic);
-                                    }
-                                }
 
                                 block.Data.Pictures = pictures.ToArray();
                                 post.Blocks.Add(block);
@@ -411,10 +394,7 @@ namespace BioEngine.BRC.Importer
                                 {
                                     Id = Guid.NewGuid(),
                                     Position = 0,
-                                    Data = new TextBlockData
-                                    {
-                                        Text = galleryPicExport.Desc
-                                    }
+                                    Data = new TextBlockData {Text = galleryPicExport.Desc}
                                 });
                             }
                         }
@@ -589,10 +569,7 @@ namespace BioEngine.BRC.Importer
                         {
                             Position = 1,
                             Id = Guid.NewGuid(),
-                            Data = new CutBlockData
-                            {
-                                ButtonText = "Читать дальше"
-                            }
+                            Data = new CutBlockData {ButtonText = "Читать дальше"}
                         });
                         await AddTextAsync(post, newsExport.AddText, data);
                     }
@@ -638,10 +615,7 @@ namespace BioEngine.BRC.Importer
                         {
                             Id = Guid.NewGuid(),
                             Position = entity.Blocks.Count,
-                            Data = new TextBlockData
-                            {
-                                Text = textParts[0].Trim()
-                            }
+                            Data = new TextBlockData {Text = textParts[0].Trim()}
                         });
                     }
 
@@ -658,10 +632,7 @@ namespace BioEngine.BRC.Importer
                 {
                     Id = Guid.NewGuid(),
                     Position = entity.Blocks.Count,
-                    Data = new TextBlockData
-                    {
-                        Text = currentText
-                    }
+                    Data = new TextBlockData {Text = currentText}
                 });
             }
         }
@@ -676,11 +647,7 @@ namespace BioEngine.BRC.Importer
             {
                 extractedBlocks.Add(new QuoteBlock
                 {
-                    Id = Guid.NewGuid(),
-                    Data = new QuoteBlockData
-                    {
-                        Text = quote.InnerHtml
-                    }
+                    Id = Guid.NewGuid(), Data = new QuoteBlockData {Text = quote.InnerHtml}
                 });
 
                 var newNodeStr = $"[block-{extractedBlocks.Count.ToString()}]";
@@ -706,20 +673,12 @@ namespace BioEngine.BRC.Importer
                         var ytId = srcUrl.Substring(srcUrl.LastIndexOf('/') + 1);
                         extractedBlocks.Add(new YoutubeBlock
                         {
-                            Id = Guid.NewGuid(),
-                            Data = new YoutubeBlockData
-                            {
-                                YoutubeId = ytId
-                            }
+                            Id = Guid.NewGuid(), Data = new YoutubeBlockData {YoutubeId = ytId}
                         });
                     }
                     else if (srcUrl.Contains("player.twitch.tv"))
                     {
-                        var block = new TwitchBlock
-                        {
-                            Id = Guid.NewGuid(),
-                            Data = new TwitchBlockData()
-                        };
+                        var block = new TwitchBlock {Id = Guid.NewGuid(), Data = new TwitchBlockData()};
                         var uri = new Uri(srcUrl);
                         var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
                         if (queryParams.ContainsKey("video"))
@@ -743,11 +702,7 @@ namespace BioEngine.BRC.Importer
                     {
                         extractedBlocks.Add(new IframeBlock
                         {
-                            Id = Guid.NewGuid(),
-                            Data = new IframeBlockData
-                            {
-                                Src = srcUrl
-                            }
+                            Id = Guid.NewGuid(), Data = new IframeBlockData {Src = srcUrl}
                         });
                     }
 
@@ -798,11 +753,7 @@ namespace BioEngine.BRC.Importer
                     {
                         extractedBlocks.Add(new PictureBlock
                         {
-                            Id = Guid.NewGuid(),
-                            Data = new PictureBlockData
-                            {
-                                Picture = item
-                            }
+                            Id = Guid.NewGuid(), Data = new PictureBlockData {Picture = item}
                         });
 
                         text = text.Replace(imgHtml, $"[block-{extractedBlocks.Count.ToString()}]");
@@ -868,10 +819,7 @@ namespace BioEngine.BRC.Importer
                         DateAdded = gameExport.Date,
                         DateUpdated = gameExport.Date,
                         DatePublished = gameExport.Date,
-                        Data = new GameData
-                        {
-                            Platforms = new Platform[0]
-                        },
+                        Data = new GameData {Platforms = new Platform[0]},
                         Properties = new List<PropertiesEntry>(),
                         Blocks = new List<ContentBlock>()
                     };
@@ -891,11 +839,8 @@ namespace BioEngine.BRC.Importer
 
                     if (!string.IsNullOrEmpty(gameExport.Keywords))
                     {
-                        await _propertiesProvider.SetAsync(new SeoPropertiesSet
-                        {
-                            Keywords = gameExport.Keywords,
-                            Description = gameExport.Desc
-                        }, game);
+                        await _propertiesProvider.SetAsync(
+                            new SeoPropertiesSet {Keywords = gameExport.Keywords, Description = gameExport.Desc}, game);
                     }
                 }
 
@@ -921,10 +866,7 @@ namespace BioEngine.BRC.Importer
                         IsPublished = true,
                         DateUpdated = DateTimeOffset.UtcNow,
                         Hashtag = string.Empty,
-                        Data = new DeveloperData
-                        {
-                            Persons = new Person[0]
-                        },
+                        Data = new DeveloperData {Persons = new Person[0]},
                         Blocks = new List<ContentBlock>()
                     };
                     await AddTextAsync(developer, dev.Desc, data);
