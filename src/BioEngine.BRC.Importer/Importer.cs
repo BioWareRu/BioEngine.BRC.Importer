@@ -10,6 +10,7 @@ using BioEngine.BRC.Domain.Entities.Blocks;
 using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
 using BioEngine.Core.Entities.Blocks;
+using BioEngine.Core.Posts.Entities;
 using BioEngine.Core.Properties;
 using BioEngine.Core.Seo;
 using BioEngine.Core.Storage;
@@ -96,14 +97,8 @@ namespace BioEngine.BRC.Importer
                 await _dbContext.AddRangeAsync(posts.OrderBy(p => p.DateAdded));
                 foreach (var post in posts)
                 {
-                    var version = new PostVersion
-                    {
-                        Id = Guid.NewGuid(),
-                        PostId = post.Id,
-                        IsPublished = true,
-                        DatePublished = DateTimeOffset.UtcNow,
-                    };
-                    version.SetPost(post);
+                    var version = new ContentVersion {Id = Guid.NewGuid(), ContentId = post.Id,};
+                    version.SetContent(post);
                     version.ChangeAuthorId = post.AuthorId;
 
                     await _dbContext.AddAsync(version);
@@ -177,10 +172,8 @@ namespace BioEngine.BRC.Importer
                 {
                     Id = Guid.NewGuid(),
                     Title = title,
-                    IsPublished = true,
                     DateAdded = DateTimeOffset.UtcNow,
                     DateUpdated = DateTimeOffset.UtcNow,
-                    DatePublished = DateTimeOffset.UtcNow
                 };
                 _dbContext.Add(tag);
                 _tags.Add(tag);
@@ -224,7 +217,7 @@ namespace BioEngine.BRC.Importer
             foreach (var fileExport in data.Files)
             {
                 var url = $"{fileExport.Url}_{fileExport.Id.ToString()}";
-                if (!await _dbContext.Posts.AnyAsync(p => p.Url == url))
+                if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
                 {
                     var post = new Post
                     {
@@ -331,7 +324,7 @@ namespace BioEngine.BRC.Importer
                 foreach (var picsGroup in pics.GroupBy(p => p.Date.Date))
                 {
                     var url = $"gallery_{picsGroup.First().Id.ToString()}";
-                    if (!await _dbContext.Posts.AnyAsync(p => p.Url == url))
+                    if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
                     {
                         var post = new Post
                         {
@@ -468,7 +461,7 @@ namespace BioEngine.BRC.Importer
             foreach (var articleExport in data.Articles)
             {
                 var url = $"{articleExport.Url}_{articleExport.Id.ToString()}";
-                if (!await _dbContext.Posts.AnyAsync(p => p.Url == url))
+                if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
                 {
                     var post = new Post
                     {
@@ -528,7 +521,7 @@ namespace BioEngine.BRC.Importer
             foreach (var newsExport in data.News.OrderByDescending(n => n.Id))
             {
                 var url = $"{newsExport.Url}_{newsExport.Id.ToString()}";
-                if (!await _dbContext.Posts.AnyAsync(p => p.Url == url))
+                if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
                 {
                     var post = new Post
                     {
@@ -543,8 +536,6 @@ namespace BioEngine.BRC.Importer
                         AuthorId = newsExport.AuthorId,
                         Blocks = new List<ContentBlock>()
                     };
-
-                    // <iframe frameborder="0" height="315" src="https://www.youtube.com/embed/v18ZpMP6i5I" width="560"></iframe>
 
                     await AddTextAsync(post, newsExport.ShortText, data);
 
@@ -596,9 +587,8 @@ namespace BioEngine.BRC.Importer
             var extractedBlocks = new List<ContentBlock>();
             var currentText = ExtractFrameBlocks(text, extractedBlocks, _iframeWithPRegex);
             currentText = ExtractFrameBlocks(currentText, extractedBlocks, _iframeRegex);
-            currentText = await ExtractImageBlocksAsync(entity, currentText, extractedBlocks, data);
             currentText = ExtractBlockQuotes(currentText, extractedBlocks);
-
+            currentText = await ExtractImageBlocksAsync(entity, currentText, extractedBlocks, data);
 
             if (extractedBlocks.Count > 0)
             {
@@ -623,6 +613,13 @@ namespace BioEngine.BRC.Importer
                     block.Position = entity.Blocks.Count;
                     entity.Blocks.Add(block);
                     currentText = textParts[1].Trim();
+                    if (entity.Blocks.Count == 3 && extractedBlocks.Count > 3)
+                    {
+                        entity.Blocks.Add(new CutBlock
+                        {
+                            Id = Guid.NewGuid(), Position = entity.Blocks.Count, Data = new CutBlockData()
+                        });
+                    }
                 }
             }
 
@@ -781,17 +778,16 @@ namespace BioEngine.BRC.Importer
                         DateAdded = DateTimeOffset.UtcNow,
                         DateUpdated = DateTimeOffset.UtcNow,
                         DatePublished = DateTimeOffset.UtcNow,
-                        Data = new TopicData(),
+                        Data = new TopicData {Hashtag = string.Empty,},
                         Properties = new List<PropertiesEntry>(),
-                        Hashtag = string.Empty,
                         Blocks = new List<ContentBlock>()
                     };
 
                     await AddTextAsync(topic, topicExport.Desc, data);
                     var logo = await UploadFromUrlAsync(topicExport.Logo, Path.Combine("sections", "topics")) ??
                                emptyLogo;
-                    topic.Logo = logo;
-                    topic.LogoSmall = logo;
+                    topic.Data.Logo = logo;
+                    topic.Data.LogoSmall = logo;
 
                     await _dbContext.AddAsync(topic);
                 }
@@ -813,13 +809,12 @@ namespace BioEngine.BRC.Importer
                         Id = Guid.NewGuid(),
                         Url = gameExport.Url,
                         Title = gameExport.Title,
-                        Hashtag = gameExport.TweetTag,
                         SiteIds = new[] {site.Id},
                         IsPublished = true,
                         DateAdded = gameExport.Date,
                         DateUpdated = gameExport.Date,
                         DatePublished = gameExport.Date,
-                        Data = new GameData {Platforms = new Platform[0]},
+                        Data = new GameData {Platforms = new Platform[0], Hashtag = gameExport.TweetTag},
                         Properties = new List<PropertiesEntry>(),
                         Blocks = new List<ContentBlock>()
                     };
@@ -829,9 +824,9 @@ namespace BioEngine.BRC.Importer
                         game.ParentId = _developersMap[gameExport.DeveloperId];
                     }
 
-                    game.Logo = await UploadFromUrlAsync(gameExport.Logo, Path.Combine("sections", "games")) ??
-                                emptyLogo;
-                    game.LogoSmall =
+                    game.Data.Logo = await UploadFromUrlAsync(gameExport.Logo, Path.Combine("sections", "games")) ??
+                                     emptyLogo;
+                    game.Data.LogoSmall =
                         await UploadFromUrlAsync(gameExport.SmallLogo, Path.Combine("sections", "games")) ??
                         emptyLogo;
 
@@ -865,15 +860,14 @@ namespace BioEngine.BRC.Importer
                         DatePublished = DateTimeOffset.UtcNow,
                         IsPublished = true,
                         DateUpdated = DateTimeOffset.UtcNow,
-                        Hashtag = string.Empty,
-                        Data = new DeveloperData {Persons = new Person[0]},
+                        Data = new DeveloperData {Persons = new Person[0], Hashtag = string.Empty},
                         Blocks = new List<ContentBlock>()
                     };
                     await AddTextAsync(developer, dev.Desc, data);
                     var logo = await UploadFromUrlAsync(dev.Logo, Path.Combine("sections", "developers")) ?? emptyLogo;
 
-                    developer.Logo = logo;
-                    developer.LogoSmall = logo;
+                    developer.Data.Logo = logo;
+                    developer.Data.LogoSmall = logo;
 
                     await _dbContext.AddAsync(developer);
                 }
@@ -925,8 +919,6 @@ namespace BioEngine.BRC.Importer
                 FileName = Path.GetFileName(path),
                 DateAdded = date,
                 DateUpdated = date,
-                IsPublished = true,
-                DatePublished = date,
                 FilePath = $"files{path}",
                 Path = Path.GetDirectoryName($"files{path}").Replace("\\", "/"),
                 FileSize = size,

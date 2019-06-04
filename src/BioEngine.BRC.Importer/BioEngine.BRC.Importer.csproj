@@ -7,7 +7,7 @@
         <UserSecretsId>bw</UserSecretsId>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="HtmlAgilityPack" Version="1.11.4" />
+        <PackageReference Include="HtmlAgilityPack" Version="1.11.7" />
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0-preview5.19227.9" />
         <PackageReference Include="BioEngine.Core.Logging.Loki" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Core.Infra')" />
         <PackageReference Include="BioEngine.Core.Seo" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Core')" />
