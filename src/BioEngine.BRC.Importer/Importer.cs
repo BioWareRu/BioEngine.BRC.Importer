@@ -11,7 +11,7 @@ using BioEngine.Core.Abstractions;
 using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
 using BioEngine.Core.Entities.Blocks;
-using BioEngine.Core.Posts.Entities;
+using BioEngine.Posts.Entities;
 using BioEngine.Core.Properties;
 using BioEngine.Core.Seo;
 using BioEngine.Core.Storage;
