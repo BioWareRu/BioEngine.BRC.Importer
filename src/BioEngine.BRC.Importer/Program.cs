@@ -20,8 +20,7 @@ namespace BioEngine.BRC.Importer
         [SuppressMessage("ReSharper", "UseAsyncSuffix")]
         public static async Task Main(string[] args)
         {
-            var bioEngine = new Core.BioEngine(args);
-            var host = bioEngine
+            await new Core.BioEngine(args)
                 .ConfigureServices((hostBuilder, collection) =>
                 {
                     collection.AddScoped<Importer>();
@@ -59,14 +58,11 @@ namespace BioEngine.BRC.Importer
                 .AddModule<SeoModule>()
                 .AddModule<TwitterModule>()
                 .AddModule<FacebookModule>()
-                .GetHostBuilder().ConfigureAppConfiguration(builder =>
+                .ConfigureAppConfiguration(builder =>
                 {
                     builder.AddUserSecrets<Importer>();
                     builder.AddEnvironmentVariables();
-                })
-                .Build();
-
-            await host.RunAsync();
+                }).RunAsync();
         }
     }
 
