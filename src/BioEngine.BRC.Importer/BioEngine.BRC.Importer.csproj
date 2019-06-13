@@ -8,14 +8,14 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="HtmlAgilityPack" Version="1.11.7" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0-preview5.19227.9" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0-preview6.19304.6" />
         <PackageReference Include="BioEngine.Core.Logging.Loki" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Core.Infra')" />
         <PackageReference Include="BioEngine.Core.Seo" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Core')" />
         <PackageReference Include="BioEngine.BRC.Common" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.BRC.Common')" />
         <PackageReference Include="BioEngine.Extra.IPB" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Extra.IPB')" />
         <PackageReference Include="BioEngine.Extra.Twitter" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Extra.Twitter')" />
         <PackageReference Include="BioEngine.Extra.Facebook" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.Extra.Facebook')" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0-preview5.19227.9" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0-preview6.19304.6" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\..\BioEngine.BRC.Common\src\BioEngine.BRC.Common\BioEngine.BRC.Common.csproj" Condition="Exists('..\..\..\BioEngine.BRC.Common')" />
