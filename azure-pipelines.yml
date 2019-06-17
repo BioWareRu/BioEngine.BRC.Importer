@@ -2,14 +2,14 @@ pool:
     vmImage: 'Ubuntu 16.04'
 
 variables:
-    Version: '3.0.$(Build.BuildId)'
-
+    Version: 3.0.$(Build.BuildId)
+    DOTNET_SDK_VERSION: 3.0.100-preview6-012264
 steps:
-    - task: UseDotNet@2
+    - task: Bash@3
+      displayName: 'Install .Net Core 3.0'
       inputs:
-          packageType: sdk
-          version: 3.0.100-preview6-012264
-          includePreviewVersions: true
+          targetType: 'inline'
+          script: 'mkdir -p $Agent.ToolsDirectory/dotnet && cd $Agent.ToolsDirectory && curl -SL --output dotnet.tar.gz https://dotnetcli.blob.core.windows.net/dotnet/Sdk/$DOTNET_SDK_VERSION/dotnet-sdk-$DOTNET_SDK_VERSION-linux-x64.tar.gz && tar -zxf dotnet.tar.gz -C dotnet && echo "##vso[task.setvariable variable=DOTNET_ROOT]$(pwd)/dotnet" && echo "##vso[task.setvariable variable=PATH]$(pwd)/dotnet:$PATH"'
     - task: DotNetCoreCLI@2
       inputs:
           command: restore
