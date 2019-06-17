@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BioEngine.BRC.Domain.Entities.Blocks;
 using BioEngine.Core.Entities.Blocks;
 using Xunit;
 using Xunit.Abstractions;
@@ -27,6 +28,68 @@ namespace BioEngine.BRC.Importer.Tests
             Assert.IsType<PictureBlock>(blocks.First());
             Assert.IsType<TextBlock>(blocks[1]);
             Assert.IsType<QuoteBlock>(blocks.Last());
+        }
+
+        [Fact]
+        public async Task TestParseIframeAsync()
+        {
+            var html = "<div><iframe src=\"https://www.bioware.ru\" /></div>";
+            var scope = GetScope();
+            var parser = scope.Get<HtmlParser>();
+            var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
+            Assert.NotEmpty(blocks);
+            Assert.True(blocks.Count == 1);
+            Assert.IsType<IframeBlock>(blocks.First());
+            if (blocks.First() is IframeBlock iframeBlock)
+            {
+                Assert.Equal("https://www.bioware.ru", iframeBlock.Data.Src);
+            }
+        }
+
+        [Fact]
+        public async Task TestParseYoutubeAsync()
+        {
+            var html = "<div><iframe src=\"https://www.youtube.com/embed/MupwaapJIy8\" /></div>";
+            var scope = GetScope();
+            var parser = scope.Get<HtmlParser>();
+            var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
+            Assert.NotEmpty(blocks);
+            Assert.True(blocks.Count == 1);
+            Assert.IsType<YoutubeBlock>(blocks.First());
+            if (blocks.First() is YoutubeBlock youtubeBlock)
+            {
+                Assert.Equal("MupwaapJIy8", youtubeBlock.Data.YoutubeId);
+            }
+        }
+
+        [Fact]
+        public async Task TestParseTwitchAsync()
+        {
+            var html = "<div><iframe src=\"https://player.twitch.tv/?channel=quin69\" /></div>";
+            var scope = GetScope();
+            var parser = scope.Get<HtmlParser>();
+            var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
+            Assert.NotEmpty(blocks);
+            Assert.True(blocks.Count == 1);
+            Assert.IsType<TwitchBlock>(blocks.First());
+            if (blocks.First() is TwitchBlock twitchBlock)
+            {
+                Assert.Equal("quin69", twitchBlock.Data.ChannelId);
+            }
+        }
+
+        [Fact]
+        public async Task TestParsePictureAsync()
+        {
+            var html =
+                "<p style=\"text-align:center\"><img alt=\"\" src=\"https://cdn.bioware.ru/images/anthem/anthem_logo.jpg\" style=\"height:180px; width:600px\" /></p>";
+            var scope = GetScope();
+            var parser = scope.Get<HtmlParser>();
+            var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
+            Assert.NotEmpty(blocks);
+            Assert.True(blocks.Count == 1);
+            Assert.IsType<PictureBlock>(blocks.First());
+            Assert.True(blocks.First() is PictureBlock pictureBlock && pictureBlock.Data.Picture.FileSize > 0);
         }
     }
 }
