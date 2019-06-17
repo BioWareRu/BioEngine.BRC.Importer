@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using BioEngine.BRC.Common;
-using BioEngine.Core.Logging.Loki;
 using BioEngine.Core.Seo;
 using BioEngine.Extra.Facebook;
 using BioEngine.Extra.IPB;
@@ -39,8 +38,7 @@ namespace BioEngine.BRC.Importer
                 .AddBrcDomain()
                 .AddElasticSearch()
                 .AddS3Storage()
-                .AddModule<LokiLoggingModule, LokiLoggingConfig>((configuration, environment) =>
-                    new LokiLoggingConfig(configuration["BRC_LOKI_URL"]))
+                .AddLogging()
                 .AddModule<IPBSiteModule, IPBModuleConfig>((configuration, env) =>
                 {
                     if (!Uri.TryCreate(configuration["BE_IPB_URL"], UriKind.Absolute, out var ipbUrl))
