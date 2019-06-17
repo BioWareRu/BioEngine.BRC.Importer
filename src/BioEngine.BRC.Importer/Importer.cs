@@ -475,7 +475,8 @@ namespace BioEngine.BRC.Importer
                         Blocks = new List<ContentBlock>()
                     };
 
-                    await AddTextAsync(post, articleExport.Text, data);
+                    post.Blocks = await GetBlocksAsync(articleExport.Text, data,
+                        $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}");
 
                     var cat = data.ArticlesCats.First(c => c.Id == articleExport.CatId);
                     var tags = articleCatsMap[cat];
@@ -535,7 +536,39 @@ namespace BioEngine.BRC.Importer
                         Blocks = new List<ContentBlock>()
                     };
 
-                    await AddTextAsync(post, newsExport.ShortText, data);
+                    var uploadPath = $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}";
+                    var blocks = await GetBlocksAsync(newsExport.ShortText, data, uploadPath);
+                    if (!string.IsNullOrEmpty(newsExport.AddText))
+                    {
+                        post.Blocks.AddRange(blocks);
+                        post.Blocks.Add(new CutBlock
+                        {
+                            Position = 1,
+                            Id = Guid.NewGuid(),
+                            Data = new CutBlockData {ButtonText = "Читать дальше"}
+                        });
+                        foreach (var block in await GetBlocksAsync(newsExport.AddText, data, uploadPath))
+                        {
+                            block.Position = post.Blocks.Count;
+                            post.Blocks.Add(block);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var block in blocks)
+                        {
+                            post.Blocks.Add(block);
+                            if (post.Blocks.Count == 3 && blocks.Count > 3)
+                            {
+                                post.Blocks.Add(new CutBlock
+                                {
+                                    Position = 1,
+                                    Id = Guid.NewGuid(),
+                                    Data = new CutBlockData {ButtonText = "Читать дальше"}
+                                });
+                            }
+                        }
+                    }
 
                     if (newsExport.DeveloperId > 0)
                     {
@@ -552,16 +585,6 @@ namespace BioEngine.BRC.Importer
                         post.SectionIds = new[] {_topicsMap[newsExport.TopicId.Value]};
                     }
 
-                    if (!string.IsNullOrEmpty(newsExport.AddText))
-                    {
-                        post.Blocks.Add(new CutBlock
-                        {
-                            Position = 1,
-                            Id = Guid.NewGuid(),
-                            Data = new CutBlockData {ButtonText = "Читать дальше"}
-                        });
-                        await AddTextAsync(post, newsExport.AddText, data);
-                    }
 
                     posts.Add(post);
                     newsMap.Add(newsExport, post);
@@ -570,11 +593,9 @@ namespace BioEngine.BRC.Importer
         }
 
 
-        private async Task AddTextAsync(IContentEntity entity, string text, Export data)
+        private Task<List<ContentBlock>> GetBlocksAsync(string text, Export data, string uploadPath)
         {
-            var blocks = await _htmlParser.ParseAsync(text,
-                $"posts/{entity.DateAdded.Year.ToString()}/{entity.DateAdded.Month.ToString()}", data.GalleryPics);
-            entity.Blocks.AddRange(blocks);
+            return _htmlParser.ParseAsync(text, uploadPath, data.GalleryPics);
         }
 
 
@@ -600,7 +621,8 @@ namespace BioEngine.BRC.Importer
                         Blocks = new List<ContentBlock>()
                     };
 
-                    await AddTextAsync(topic, topicExport.Desc, data);
+                    topic.Blocks = await GetBlocksAsync(topicExport.Desc, data,
+                        $"topics/{topic.DateAdded.Year.ToString()}/{topic.DateAdded.Month.ToString()}");
                     var logo = await _filesUploader.UploadFromUrlAsync(topicExport.Logo,
                                    Path.Combine("sections", "topics")) ??
                                emptyLogo;
@@ -636,7 +658,8 @@ namespace BioEngine.BRC.Importer
                         Properties = new List<PropertiesEntry>(),
                         Blocks = new List<ContentBlock>()
                     };
-                    await AddTextAsync(game, gameExport.Desc, data);
+                    game.Blocks = await GetBlocksAsync(gameExport.Desc, data,
+                        $"games/{game.DateAdded.Year.ToString()}/{game.DateAdded.Month.ToString()}");
                     if (gameExport.DeveloperId > 0 && _developersMap.ContainsKey(gameExport.DeveloperId))
                     {
                         game.ParentId = _developersMap[gameExport.DeveloperId];
@@ -683,7 +706,8 @@ namespace BioEngine.BRC.Importer
                         Data = new DeveloperData {Persons = new Person[0], Hashtag = string.Empty},
                         Blocks = new List<ContentBlock>()
                     };
-                    await AddTextAsync(developer, dev.Desc, data);
+                    developer.Blocks = await GetBlocksAsync(dev.Desc, data,
+                        $"developers/{developer.DateAdded.Year.ToString()}/{developer.DateAdded.Month.ToString()}");
                     var logo =
                         await _filesUploader.UploadFromUrlAsync(dev.Logo, Path.Combine("sections", "developers")) ??
                         emptyLogo;
@@ -702,7 +726,7 @@ namespace BioEngine.BRC.Importer
         {
             _logger.LogCritical($"Developers: {(await _dbContext.Set<Developer>().CountAsync()).ToString()}");
             _logger.LogCritical($"Games: {(await _dbContext.Set<Game>().CountAsync()).ToString()}");
-            _logger.LogCritical(message: $"Topics: {(await _dbContext.Set<Topic>().CountAsync()).ToString()}");
+            _logger.LogCritical($"Topics: {(await _dbContext.Set<Topic>().CountAsync()).ToString()}");
             _logger.LogCritical($"Storage items: {(await _dbContext.Set<StorageItem>().CountAsync()).ToString()}");
             _logger.LogCritical($"Tags: {(await _dbContext.Set<Tag>().CountAsync()).ToString()}");
             _logger.LogCritical($"Properties: {(await _dbContext.Set<PropertiesRecord>().CountAsync()).ToString()}");
