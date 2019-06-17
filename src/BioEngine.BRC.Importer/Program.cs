@@ -24,6 +24,9 @@ namespace BioEngine.BRC.Importer
                 .ConfigureServices((hostBuilder, collection) =>
                 {
                     collection.AddScoped<Importer>();
+                    collection.AddScoped<FilesUploader>();
+                    collection.AddScoped<HtmlParser>();
+                    collection.AddHttpClient();
                     collection.AddSingleton<IHostedService, ImporterService>();
                     collection.Configure<ImporterOptions>(options =>
                     {
@@ -58,11 +61,11 @@ namespace BioEngine.BRC.Importer
                 .AddModule<SeoModule>()
                 .AddModule<TwitterModule>()
                 .AddModule<FacebookModule>()
-                .ConfigureAppConfiguration(builder =>
-                {
-                    builder.AddUserSecrets<Importer>();
-                    builder.AddEnvironmentVariables();
-                }).RunAsync();
+                    .ConfigureAppConfiguration(builder =>
+                    {
+                        builder.AddUserSecrets<Importer>();
+                        builder.AddEnvironmentVariables();
+                    }).RunAsync();
         }
     }
 

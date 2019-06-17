@@ -2,11 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using BioEngine.BRC.Domain.Entities;
-using BioEngine.BRC.Domain.Entities.Blocks;
 using BioEngine.Core.Abstractions;
 using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
@@ -14,11 +11,9 @@ using BioEngine.Core.Entities.Blocks;
 using BioEngine.Posts.Entities;
 using BioEngine.Core.Properties;
 using BioEngine.Core.Seo;
-using BioEngine.Core.Storage;
 using BioEngine.Extra.Facebook.Entities;
 using BioEngine.Extra.IPB.Publishing;
 using BioEngine.Extra.Twitter;
-using HtmlAgilityPack;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
@@ -29,21 +24,22 @@ namespace BioEngine.BRC.Importer
     {
         private readonly BioContext _dbContext;
         private readonly ILogger<Importer> _logger;
-        private readonly IStorage _storage;
+        private readonly FilesUploader _filesUploader;
         private readonly PropertiesProvider _propertiesProvider;
-        private readonly HttpClient _httpClient = new HttpClient();
+        private readonly HtmlParser _htmlParser;
         private Dictionary<int, Guid> _developersMap;
         private Dictionary<int, Guid> _gamesMap;
         private Dictionary<int, Guid> _topicsMap;
         private List<Tag> _tags;
 
-        public Importer(BioContext dbContext, ILogger<Importer> logger, IStorage storage,
-            PropertiesProvider propertiesProvider)
+        public Importer(BioContext dbContext, ILogger<Importer> logger, FilesUploader filesUploader,
+            PropertiesProvider propertiesProvider, HtmlParser htmlParser)
         {
             _dbContext = dbContext;
             _logger = logger;
-            _storage = storage;
+            _filesUploader = filesUploader;
             _propertiesProvider = propertiesProvider;
+            _htmlParser = htmlParser;
         }
 
         public async Task ImportAsync(Guid siteId, Export data)
@@ -60,9 +56,10 @@ namespace BioEngine.BRC.Importer
 
             _tags = await _dbContext.Tags.ToListAsync();
 
-            _storage.BeginBatch();
+            _filesUploader.BeginBatch();
 
-            var emptyLogo = await UploadFromUrlAsync("https://dummyimage.com/200x200/000/fff", "tmp", "dummy.png");
+            var emptyLogo =
+                await _filesUploader.UploadFromUrlAsync("https://dummyimage.com/200x200/000/fff", "tmp", "dummy.png");
             try
             {
                 _logger.LogInformation($"Developers: {data.Developers.Count.ToString()}");
@@ -154,7 +151,7 @@ namespace BioEngine.BRC.Importer
                 return;
             }
 
-            await _storage.FinishBatchAsync();
+            await _filesUploader.FinishBatchAsync();
             await _dbContext.SaveChangesAsync();
             await PrintStatsAsync();
 
@@ -252,7 +249,7 @@ namespace BioEngine.BRC.Importer
                     }
                     else
                     {
-                        var file = UploadByPath(fileExport.Link, fileExport.Size, fileExport.Date);
+                        var file = _filesUploader.UploadByPath(fileExport.Link, fileExport.Size, fileExport.Date);
 
                         post.Blocks.Add(
                             new FileBlock {Id = Guid.NewGuid(), Position = 0, Data = new FileBlockData {File = file}});
@@ -346,7 +343,7 @@ namespace BioEngine.BRC.Importer
                             var pictures = new List<StorageItem>();
                             foreach (var picFile in galleryPicExport.Files)
                             {
-                                var pic = await UploadFromUrlAsync(picFile.Url,
+                                var pic = await _filesUploader.UploadFromUrlAsync(picFile.Url,
                                     $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
                                     picFile.FileName);
                                 if (pic != null)
@@ -362,7 +359,7 @@ namespace BioEngine.BRC.Importer
                                     Id = Guid.NewGuid(), Position = 1, Data = new PictureBlockData()
                                 };
                                 var picFile = pictures[0];
-                                var pic = await UploadFromUrlAsync(picFile.Url,
+                                var pic = await _filesUploader.UploadFromUrlAsync(picFile.Url,
                                     $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
                                     picFile.FileName);
                                 if (pic != null)
@@ -572,195 +569,14 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private readonly Regex _iframeRegex =
-            new Regex("<iframe.*src=\"(.*?)\".*>.*</iframe>", RegexOptions.Multiline & RegexOptions.IgnoreCase);
-
-        private readonly Regex _iframeWithPRegex =
-            new Regex("<p[^>]+><iframe.*src=\"(.*?)\".*>.*</iframe></p>",
-                RegexOptions.Multiline & RegexOptions.IgnoreCase);
-
-        private readonly Regex _imageRegex = new Regex("<p.*><img.*src=\"(.*?)\".*></p>",
-            RegexOptions.Multiline & RegexOptions.IgnoreCase);
 
         private async Task AddTextAsync(IContentEntity entity, string text, Export data)
         {
-            // iframe
-            var extractedBlocks = new List<ContentBlock>();
-            var currentText = ExtractFrameBlocks(text, extractedBlocks, _iframeWithPRegex);
-            currentText = ExtractFrameBlocks(currentText, extractedBlocks, _iframeRegex);
-            currentText = ExtractBlockQuotes(currentText, extractedBlocks);
-            currentText = await ExtractImageBlocksAsync(entity, currentText, extractedBlocks, data);
-
-            if (extractedBlocks.Count > 0)
-            {
-                var matches = new Regex("\\[block-([0-9]+)\\]", RegexOptions.Multiline & RegexOptions.IgnoreCase)
-                    .Matches(currentText);
-                foreach (Match match in matches)
-                {
-                    var replace = match.Value;
-                    var blockId = int.Parse(match.Groups[1].Value);
-                    var textParts = currentText.Split(replace);
-                    if (!string.IsNullOrWhiteSpace(textParts[0].Trim()))
-                    {
-                        entity.Blocks.Add(new TextBlock
-                        {
-                            Id = Guid.NewGuid(),
-                            Position = entity.Blocks.Count,
-                            Data = new TextBlockData {Text = textParts[0].Trim()}
-                        });
-                    }
-
-                    var block = extractedBlocks[blockId - 1];
-                    block.Position = entity.Blocks.Count;
-                    entity.Blocks.Add(block);
-                    currentText = textParts[1].Trim();
-                    if (entity.Blocks.Count == 3 && extractedBlocks.Count > 3)
-                    {
-                        entity.Blocks.Add(new CutBlock
-                        {
-                            Id = Guid.NewGuid(), Position = entity.Blocks.Count, Data = new CutBlockData()
-                        });
-                    }
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(currentText))
-            {
-                entity.Blocks.Add(new TextBlock
-                {
-                    Id = Guid.NewGuid(),
-                    Position = entity.Blocks.Count,
-                    Data = new TextBlockData {Text = currentText}
-                });
-            }
+            var blocks = await _htmlParser.ParseAsync(text,
+                $"posts/{entity.DateAdded.Year.ToString()}/{entity.DateAdded.Month.ToString()}", data.GalleryPics);
+            entity.Blocks.AddRange(blocks);
         }
 
-        private string ExtractBlockQuotes(string currentText, List<ContentBlock> extractedBlocks)
-        {
-            var doc = new HtmlDocument();
-            doc.LoadHtml(currentText);
-            var quotes = doc.DocumentNode.Descendants("blockquote").ToArray();
-            if (!quotes.Any()) return currentText;
-            foreach (var quote in quotes)
-            {
-                extractedBlocks.Add(new QuoteBlock
-                {
-                    Id = Guid.NewGuid(), Data = new QuoteBlockData {Text = quote.InnerHtml}
-                });
-
-                var newNodeStr = $"[block-{extractedBlocks.Count.ToString()}]";
-                var newNode = HtmlNode.CreateNode(newNodeStr);
-                quote.ParentNode.ReplaceChild(newNode, quote);
-            }
-
-            return doc.DocumentNode.InnerHtml;
-        }
-
-        private string ExtractFrameBlocks(string text, List<ContentBlock> extractedBlocks, Regex regex)
-        {
-            var matches = regex.Matches(text);
-            if (matches.Count > 0)
-            {
-                foreach (Match match in matches)
-                {
-                    var iframeHtml = match.Value;
-
-                    var srcUrl = match.Groups[1].Value;
-                    if (srcUrl.Contains("www.youtube.com/embed"))
-                    {
-                        var ytId = srcUrl.Substring(srcUrl.LastIndexOf('/') + 1);
-                        extractedBlocks.Add(new YoutubeBlock
-                        {
-                            Id = Guid.NewGuid(), Data = new YoutubeBlockData {YoutubeId = ytId}
-                        });
-                    }
-                    else if (srcUrl.Contains("player.twitch.tv"))
-                    {
-                        var block = new TwitchBlock {Id = Guid.NewGuid(), Data = new TwitchBlockData()};
-                        var uri = new Uri(srcUrl);
-                        var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-                        if (queryParams.ContainsKey("video"))
-                        {
-                            block.Data.VideoId = queryParams["video"].First();
-                        }
-
-                        if (queryParams.ContainsKey("channel"))
-                        {
-                            block.Data.ChannelId = queryParams["channel"].First();
-                        }
-
-                        if (queryParams.ContainsKey("collection"))
-                        {
-                            block.Data.CollectionId = queryParams["collection"].First();
-                        }
-
-                        extractedBlocks.Add(block);
-                    }
-                    else
-                    {
-                        extractedBlocks.Add(new IframeBlock
-                        {
-                            Id = Guid.NewGuid(), Data = new IframeBlockData {Src = srcUrl}
-                        });
-                    }
-
-                    text = text.Replace(iframeHtml, $"[block-{extractedBlocks.Count.ToString()}]");
-                }
-            }
-
-            return text;
-        }
-
-        private async Task<string> ExtractImageBlocksAsync(IContentEntity post, string text,
-            ICollection<ContentBlock> extractedBlocks,
-            Export data)
-        {
-            var matches = _imageRegex.Matches(text);
-            if (matches.Count > 0)
-            {
-                foreach (Match match in matches)
-                {
-                    var imgHtml = match.Value;
-
-                    var imgUrl = match.Groups[1].Value;
-
-                    var thumbMatch = _thumbUrlRegex.Match(imgUrl);
-                    if (thumbMatch.Success)
-                    {
-                        int.TryParse(thumbMatch.Groups[1].Value, out var picId);
-                        var indexId = 0;
-                        if (thumbMatch.Groups.Count > 1)
-                        {
-                            int.TryParse(thumbMatch.Groups[2].Value, out indexId);
-                        }
-
-                        if (picId > 0)
-                        {
-                            var pic = data.GalleryPics.FirstOrDefault(p => p.Id == picId);
-                            if (pic != null && pic.Files.Count > indexId)
-                            {
-                                var file = pic.Files[indexId];
-                                imgUrl = file.Url;
-                            }
-                        }
-                    }
-
-                    var item = await UploadFromUrlAsync(imgUrl,
-                        $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}");
-                    if (item != null)
-                    {
-                        extractedBlocks.Add(new PictureBlock
-                        {
-                            Id = Guid.NewGuid(), Data = new PictureBlockData {Picture = item}
-                        });
-
-                        text = text.Replace(imgHtml, $"[block-{extractedBlocks.Count.ToString()}]");
-                    }
-                }
-            }
-
-            return text;
-        }
 
         private async Task ImportTopicsAsync(Export data, Site site, StorageItem emptyLogo)
         {
@@ -785,7 +601,8 @@ namespace BioEngine.BRC.Importer
                     };
 
                     await AddTextAsync(topic, topicExport.Desc, data);
-                    var logo = await UploadFromUrlAsync(topicExport.Logo, Path.Combine("sections", "topics")) ??
+                    var logo = await _filesUploader.UploadFromUrlAsync(topicExport.Logo,
+                                   Path.Combine("sections", "topics")) ??
                                emptyLogo;
                     topic.Data.Logo = logo;
                     topic.Data.LogoSmall = logo;
@@ -825,10 +642,12 @@ namespace BioEngine.BRC.Importer
                         game.ParentId = _developersMap[gameExport.DeveloperId];
                     }
 
-                    game.Data.Logo = await UploadFromUrlAsync(gameExport.Logo, Path.Combine("sections", "games")) ??
-                                     emptyLogo;
+                    game.Data.Logo =
+                        await _filesUploader.UploadFromUrlAsync(gameExport.Logo, Path.Combine("sections", "games")) ??
+                        emptyLogo;
                     game.Data.LogoSmall =
-                        await UploadFromUrlAsync(gameExport.SmallLogo, Path.Combine("sections", "games")) ??
+                        await _filesUploader.UploadFromUrlAsync(gameExport.SmallLogo,
+                            Path.Combine("sections", "games")) ??
                         emptyLogo;
 
                     await _dbContext.AddAsync(game);
@@ -865,7 +684,9 @@ namespace BioEngine.BRC.Importer
                         Blocks = new List<ContentBlock>()
                     };
                     await AddTextAsync(developer, dev.Desc, data);
-                    var logo = await UploadFromUrlAsync(dev.Logo, Path.Combine("sections", "developers")) ?? emptyLogo;
+                    var logo =
+                        await _filesUploader.UploadFromUrlAsync(dev.Logo, Path.Combine("sections", "developers")) ??
+                        emptyLogo;
 
                     developer.Data.Logo = logo;
                     developer.Data.LogoSmall = logo;
@@ -889,48 +710,6 @@ namespace BioEngine.BRC.Importer
             _logger.LogCritical($"Blocks: {(await _dbContext.Set<ContentBlock>().CountAsync()).ToString()}");
         }
 
-        private readonly Regex _thumbUrlRegex = new Regex("gallery\\/thumb\\/([0-9]+)\\/[0-9]+\\/[0-9]+\\/?([0-9]+)?");
-
-        private async Task<StorageItem> UploadFromUrlAsync(string url, string path, string fileName = null)
-        {
-            fileName ??= Path.GetFileName(url);
-            if (!string.IsNullOrEmpty(fileName))
-            {
-                try
-                {
-                    _logger.LogInformation($"Downloading file from url {url}");
-                    var fileData = await _httpClient.GetByteArrayAsync(url);
-                    var item = await _storage.SaveFileAsync(fileData, fileName, path);
-                    return item;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error while uploading file from url: {url}: {ex}");
-                }
-            }
-
-            return null;
-        }
-
-        private StorageItem UploadByPath(string path, int size, DateTimeOffset date)
-        {
-            var file = new StorageItem
-            {
-                Id = Guid.NewGuid(),
-                FileName = Path.GetFileName(path),
-                DateAdded = date,
-                DateUpdated = date,
-                FilePath = $"files{path}",
-                Path = Path.GetDirectoryName($"files{path}").Replace("\\", "/"),
-                FileSize = size,
-                Type = StorageItemType.Other,
-                PublicUri = new Uri($"https://s3.bioware.ru/files/{path}")
-            };
-
-            _dbContext.Add(file);
-
-            return file;
-        }
 
         private void Rollback(IDbContextTransaction transaction)
         {
