@@ -7,10 +7,12 @@ using BioEngine.Core.Seo;
 using BioEngine.Extra.Facebook;
 using BioEngine.Extra.IPB;
 using BioEngine.Extra.Twitter;
+using Flurl.Http;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BioEngine.BRC.Importer
 {
@@ -26,7 +28,6 @@ namespace BioEngine.BRC.Importer
                     collection.AddScoped<FilesUploader>();
                     collection.AddScoped<HtmlParser>();
                     collection.AddHttpClient();
-                    collection.AddSingleton<IHostedService, ImporterService>();
                     collection.Configure<ImporterOptions>(options =>
                     {
                         options.ApiUri = hostBuilder.Configuration["BRC_EXPORT_API_URL"];
@@ -59,11 +60,24 @@ namespace BioEngine.BRC.Importer
                 .AddModule<SeoModule>()
                 .AddModule<TwitterModule>()
                 .AddModule<FacebookModule>()
-                    .ConfigureAppConfiguration(builder =>
-                    {
-                        builder.AddUserSecrets<Importer>();
-                        builder.AddEnvironmentVariables();
-                    }).RunAsync();
+                .ConfigureAppConfiguration(builder =>
+                {
+                    builder.AddUserSecrets<Importer>();
+                    builder.AddEnvironmentVariables();
+                }).ExecuteAsync(async services =>
+                {
+                    var logger = services.GetRequiredService<ILogger<Importer>>();
+                    var options = services.GetRequiredService<IOptions<ImporterOptions>>().Value;
+                    var importer = services.GetRequiredService<Importer>();
+                    logger.LogInformation("Download data from {apiUri}", options.ApiUri);
+                    var data = await options.ApiUri.WithHeader("Authorization", $"Bearer {options.ApiToken}")
+                        .GetJsonAsync<Export>();
+                    logger.LogInformation("Data is downloaded");
+                    
+                    logger.LogInformation("Import for site {siteId}", options.SiteId);
+                    await importer.ImportAsync(options.SiteId, data);
+                    logger.LogInformation("Import done");
+                });
         }
     }
 
