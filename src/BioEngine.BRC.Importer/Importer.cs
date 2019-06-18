@@ -474,8 +474,23 @@ namespace BioEngine.BRC.Importer
                         Blocks = new List<ContentBlock>()
                     };
 
-                    post.Blocks = await GetBlocksAsync(articleExport.Text, data,
+                    var blocks = await GetBlocksAsync(articleExport.Text, data,
                         $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}");
+
+                    foreach (var block in blocks)
+                    {
+                        block.Position = post.Blocks.Count;
+                        post.Blocks.Add(block);
+                        if (post.Blocks.Count == 5 && blocks.Count > 7)
+                        {
+                            post.Blocks.Add(new CutBlock
+                            {
+                                Position = post.Blocks.Count,
+                                Id = Guid.NewGuid(),
+                                Data = new CutBlockData {ButtonText = "Читать дальше"}
+                            });
+                        }
+                    }
 
                     var cat = data.ArticlesCats.First(c => c.Id == articleExport.CatId);
                     var tags = articleCatsMap[cat];
@@ -569,7 +584,7 @@ namespace BioEngine.BRC.Importer
                         {
                             block.Position = post.Blocks.Count;
                             post.Blocks.Add(block);
-                            if (post.Blocks.Count == 3 && blocks.Count > 3)
+                            if (post.Blocks.Count == 5 && blocks.Count > 7)
                             {
                                 post.Blocks.Add(new CutBlock
                                 {
