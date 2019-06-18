@@ -358,7 +358,7 @@ namespace BioEngine.BRC.Importer
                                     Id = Guid.NewGuid(), Position = 1, Data = new PictureBlockData()
                                 };
                                 var picFile = pictures[0];
-                                var pic = await _filesUploader.UploadFromUrlAsync(picFile.Url,
+                                var pic = await _filesUploader.UploadFromUrlAsync(picFile.PublicUri.ToString(),
                                     $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
                                     picFile.FileName);
                                 if (pic != null)
