@@ -573,7 +573,7 @@ namespace BioEngine.BRC.Importer
                             {
                                 post.Blocks.Add(new CutBlock
                                 {
-                                    Position = 1,
+                                    Position = post.Blocks.Count,
                                     Id = Guid.NewGuid(),
                                     Data = new CutBlockData {ButtonText = "Читать дальше"}
                                 });
