@@ -539,23 +539,35 @@ namespace BioEngine.BRC.Importer
                     var blocks = await GetBlocksAsync(newsExport.ShortText, data, uploadPath);
                     if (!string.IsNullOrEmpty(newsExport.AddText))
                     {
-                        post.Blocks.AddRange(blocks);
-                        post.Blocks.Add(new CutBlock
-                        {
-                            Position = 1,
-                            Id = Guid.NewGuid(),
-                            Data = new CutBlockData {ButtonText = "Читать дальше"}
-                        });
-                        foreach (var block in await GetBlocksAsync(newsExport.AddText, data, uploadPath))
+                        foreach (var block in blocks)
                         {
                             block.Position = post.Blocks.Count;
                             post.Blocks.Add(block);
+                        }
+
+                        var addBlocks = await GetBlocksAsync(newsExport.AddText, data, uploadPath);
+
+                        if (addBlocks.Any())
+                        {
+                            post.Blocks.Add(new CutBlock
+                            {
+                                Position = post.Blocks.Count,
+                                Id = Guid.NewGuid(),
+                                Data = new CutBlockData {ButtonText = "Читать дальше"}
+                            });
+
+                            foreach (var block in addBlocks)
+                            {
+                                block.Position = post.Blocks.Count;
+                                post.Blocks.Add(block);
+                            }
                         }
                     }
                     else
                     {
                         foreach (var block in blocks)
                         {
+                            block.Position = post.Blocks.Count;
                             post.Blocks.Add(block);
                             if (post.Blocks.Count == 3 && blocks.Count > 3)
                             {
