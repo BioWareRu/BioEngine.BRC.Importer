@@ -3,14 +3,17 @@ pool:
 
 variables:
     Version: 3.0.$(Build.BuildId)
-    DOTNET_SDK_VERSION: 3.0.100-preview6-012264
+
 steps:
-    - task: Bash@3
+    - task: UseDotNet@2
       displayName: 'Install .Net Core 3.0'
       inputs:
-          targetType: 'inline'
-          script: 'mkdir -p $Agent.ToolsDirectory/dotnet && cd $Agent.ToolsDirectory && curl -SL --output dotnet.tar.gz https://dotnetcli.blob.core.windows.net/dotnet/Sdk/$DOTNET_SDK_VERSION/dotnet-sdk-$DOTNET_SDK_VERSION-linux-x64.tar.gz && tar -zxf dotnet.tar.gz -C dotnet && echo "##vso[task.setvariable variable=DOTNET_ROOT]$(pwd)/dotnet" && echo "##vso[task.setvariable variable=PATH]$(pwd)/dotnet:$PATH"'
+          packageType: sdk
+          version: 3.0.100-preview6-012264
+          includePreviewVersions: true
+          
     - task: DotNetCoreCLI@2
+      displayName: 'Restore packages'
       inputs:
           command: restore
           projects: '**/*.csproj'
@@ -19,6 +22,7 @@ steps:
           vstsFeed: 'BioEngine'
 
     - task: DotNetCoreCLI@2
+      displayName: 'Publish project'
       inputs:
           command: custom
           custom: publish
@@ -28,15 +32,12 @@ steps:
           arguments: '--no-restore -c Release --output ./publish'
           projects: '**/*.csproj'
 
-    - script: |
-          docker build -f src/BioEngine.BRC.Importer/Dockerfile ./publish -t biowareru/bioengine-brc-importer:$(Version)
-      displayName: 'build docker image'
-
-    - script: |
-          docker login -u $(dockerId) -p $(dockerPswd)
-      displayName: 'login to docker hub'
-
-    - script: |
-          docker push biowareru/bioengine-brc-importer:$(Version)
-      displayName: 'push image to docker hub'
-    
+    - task: Docker@2
+      displayName: 'Build and push image'
+      inputs:
+          containerRegistry: 'BioWareRU DockerHub'
+          repository: 'biowareru/bioengine-brc-importer'
+          command: 'buildAndPush'
+          Dockerfile: 'src/BioEngine.BRC.Importer/Dockerfile'
+          buildContext: './publish'
+          tags: '$(Version)'
