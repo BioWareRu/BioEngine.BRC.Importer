@@ -16,15 +16,15 @@ stages:
                       includePreviewVersions: true
 
                 - task: DotNetCoreCLI@2
-                      displayName: 'Publish project'
-                      inputs:
-                          command: custom
-                          custom: publish
-                          publishWebProjects: false
-                          zipAfterPublish: false
-                          modifyOutputPath: false
-                          arguments: '--no-restore -c Release --output ./publish'
-                          projects: '**/*.csproj'
+                  displayName: 'Publish project'
+                  inputs:
+                      command: custom
+                      custom: publish
+                      publishWebProjects: false
+                      zipAfterPublish: false
+                      modifyOutputPath: false
+                      arguments: '--no-restore -c Release --output ./publish'
+                      projects: '**/*.csproj'
 
     - stage: Deploy
       dependsOn: Build
