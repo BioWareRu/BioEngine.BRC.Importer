@@ -35,11 +35,11 @@ stages:
                 vmImage: Ubuntu 16.04
             steps:
                 - task: Docker@2
-                      displayName: 'Build and push image'
-                      inputs:
-                          containerRegistry: 'BioWareRU DockerHub'
-                          repository: 'biowareru/bioengine-brc-importer'
-                          command: 'buildAndPush'
-                          Dockerfile: 'src/BioEngine.BRC.Importer/Dockerfile'
-                          buildContext: './publish'
-                          tags: '$(Version)'
+                  displayName: 'Build and push image'
+                  inputs:
+                      containerRegistry: 'BioWareRU DockerHub'
+                      repository: 'biowareru/bioengine-brc-importer'
+                      command: 'buildAndPush'
+                      Dockerfile: 'src/BioEngine.BRC.Importer/Dockerfile'
+                      buildContext: './publish'
+                      tags: '$(Version)'
