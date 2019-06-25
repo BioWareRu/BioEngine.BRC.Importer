@@ -1,43 +1,45 @@
-pool:
-    vmImage: 'Ubuntu 16.04'
-
 variables:
     Version: 3.0.$(Build.BuildId)
 
-steps:
-    - task: UseDotNet@2
-      displayName: 'Install .Net Core 3.0'
-      inputs:
-          packageType: sdk
-          version: 3.0.100-preview6-012264
-          includePreviewVersions: true
-          
-    - task: DotNetCoreCLI@2
-      displayName: 'Restore packages'
-      inputs:
-          command: restore
-          projects: '**/*.csproj'
-          feedsToUse: 'select'
-          verbosityRestore: 'minimal'
-          vstsFeed: 'BioEngine'
+stages:
+    - stage: Build
+      jobs:
+          - job: Build
+            pool:
+                vmImage: Ubuntu 16.04
+            steps:
+                - task: UseDotNet@2
+                  displayName: 'Install .Net Core 3.0'
+                  inputs:
+                      packageType: sdk
+                      version: 3.0.100-preview6-012264
+                      includePreviewVersions: true
 
-    - task: DotNetCoreCLI@2
-      displayName: 'Publish project'
-      inputs:
-          command: custom
-          custom: publish
-          publishWebProjects: false
-          zipAfterPublish: false
-          modifyOutputPath: false
-          arguments: '--no-restore -c Release --output ./publish'
-          projects: '**/*.csproj'
+                - task: DotNetCoreCLI@2
+                      displayName: 'Publish project'
+                      inputs:
+                          command: custom
+                          custom: publish
+                          publishWebProjects: false
+                          zipAfterPublish: false
+                          modifyOutputPath: false
+                          arguments: '--no-restore -c Release --output ./publish'
+                          projects: '**/*.csproj'
 
-    - task: Docker@2
-      displayName: 'Build and push image'
-      inputs:
-          containerRegistry: 'BioWareRU DockerHub'
-          repository: 'biowareru/bioengine-brc-importer'
-          command: 'buildAndPush'
-          Dockerfile: 'src/BioEngine.BRC.Importer/Dockerfile'
-          buildContext: './publish'
-          tags: '$(Version)'
+    - stage: Deploy
+      dependsOn: Build
+      condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
+      jobs:
+          - job: Publish
+            pool:
+                vmImage: Ubuntu 16.04
+            steps:
+                - task: Docker@2
+                      displayName: 'Build and push image'
+                      inputs:
+                          containerRegistry: 'BioWareRU DockerHub'
+                          repository: 'biowareru/bioengine-brc-importer'
+                          command: 'buildAndPush'
+                          Dockerfile: 'src/BioEngine.BRC.Importer/Dockerfile'
+                          buildContext: './publish'
+                          tags: '$(Version)'
