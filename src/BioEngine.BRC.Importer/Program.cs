@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using BioEngine.BRC.Common;
+using BioEngine.Core.Pages.Api;
+using BioEngine.Core.Posts.Api;
 using BioEngine.Core.Seo;
 using BioEngine.Extra.Facebook;
 using BioEngine.Extra.IPB;
@@ -37,6 +39,8 @@ namespace BioEngine.BRC.Importer
                 })
                 .AddPostgresDb()
                 .AddBrcDomain()
+                .AddModule<PagesApiModule>()
+                .AddModule<PostsApiModule>()
                 .AddElasticSearch()
                 .AddS3Storage()
                 .AddLogging()

@@ -7,7 +7,7 @@ using BioEngine.BRC.Domain.Entities;
 using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
 using BioEngine.Core.Entities.Blocks;
-using BioEngine.Posts.Entities;
+using BioEngine.Core.Posts.Entities;
 using BioEngine.Core.Properties;
 using BioEngine.Core.Seo;
 using BioEngine.Extra.Facebook.Entities;
@@ -26,19 +26,21 @@ namespace BioEngine.BRC.Importer
         private readonly FilesUploader _filesUploader;
         private readonly PropertiesProvider _propertiesProvider;
         private readonly HtmlParser _htmlParser;
+        private readonly BioEntitiesManager _entitiesManager;
         private Dictionary<int, Guid> _developersMap;
         private Dictionary<int, Guid> _gamesMap;
         private Dictionary<int, Guid> _topicsMap;
         private List<Tag> _tags;
 
         public Importer(BioContext dbContext, ILogger<Importer> logger, FilesUploader filesUploader,
-            PropertiesProvider propertiesProvider, HtmlParser htmlParser)
+            PropertiesProvider propertiesProvider, HtmlParser htmlParser, BioEntitiesManager entitiesManager)
         {
             _dbContext = dbContext;
             _logger = logger;
             _filesUploader = filesUploader;
             _propertiesProvider = propertiesProvider;
             _htmlParser = htmlParser;
+            _entitiesManager = entitiesManager;
         }
 
         public async Task ImportAsync(Guid siteId, Export data)
@@ -110,7 +112,7 @@ namespace BioEngine.BRC.Importer
                     {
                         _dbContext.Add(new TwitterPublishRecord
                         {
-                            Type = post.GetType().FullName,
+                            Type = _entitiesManager.GetKey(post),
                             ContentId = post.Id,
                             TweetId = news.TwitterId.Value,
                             SiteIds = new[] {site.Id}
@@ -121,7 +123,7 @@ namespace BioEngine.BRC.Importer
                     {
                         _dbContext.Add(new FacebookPublishRecord
                         {
-                            Type = post.GetType().FullName,
+                            Type = _entitiesManager.GetKey(post),
                             ContentId = post.Id,
                             PostId = news.FacebookId,
                             SiteIds = new[] {site.Id}
@@ -132,7 +134,7 @@ namespace BioEngine.BRC.Importer
                     {
                         _dbContext.Add(new IPBPublishRecord
                         {
-                            Type = post.GetType().FullName,
+                            Type = _entitiesManager.GetKey(post),
                             ContentId = post.Id,
                             TopicId = news.ForumTopicId.Value,
                             PostId = news.ForumPostId.Value,
