@@ -228,7 +228,7 @@ namespace BioEngine.BRC.Importer
                         DateUpdated = fileExport.Date,
                         DatePublished = fileExport.Date,
                         IsPublished = true,
-                        AuthorId = fileExport.AuthorId,
+                        AuthorId = fileExport.AuthorId.ToString(),
                         Blocks = new List<ContentBlock>()
                     };
                     if (!string.IsNullOrEmpty(fileExport.Desc))
@@ -335,7 +335,7 @@ namespace BioEngine.BRC.Importer
                             DateUpdated = picsGroup.First().Date,
                             DatePublished = picsGroup.First().Date,
                             IsPublished = true,
-                            AuthorId = picsGroup.First().AuthorId,
+                            AuthorId = picsGroup.First().AuthorId.ToString(),
                             Blocks = new List<ContentBlock>()
                         };
 
@@ -472,7 +472,7 @@ namespace BioEngine.BRC.Importer
                         DateUpdated = articleExport.Date,
                         DatePublished = articleExport.Date,
                         IsPublished = articleExport.Pub == 1,
-                        AuthorId = articleExport.AuthorId,
+                        AuthorId = articleExport.AuthorId.ToString(),
                         Blocks = new List<ContentBlock>()
                     };
 
@@ -548,7 +548,7 @@ namespace BioEngine.BRC.Importer
                         DateUpdated = newsExport.LastChangeDate,
                         DatePublished = newsExport.LastChangeDate,
                         IsPublished = newsExport.Pub == 1,
-                        AuthorId = newsExport.AuthorId,
+                        AuthorId = newsExport.AuthorId.ToString(),
                         Blocks = new List<ContentBlock>()
                     };
 
