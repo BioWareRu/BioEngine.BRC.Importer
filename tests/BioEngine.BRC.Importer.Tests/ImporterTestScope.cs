@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using BioEngine.BRC.Common;
+using BioEngine.Core.Pages.Api;
 using BioEngine.Core.Seo;
 using BioEngine.Core.Storage;
 using BioEngine.Core.Tests;
@@ -29,6 +30,7 @@ namespace BioEngine.BRC.Importer.Tests
                 }).AddModule<SeoModule>()
                 .AddModule<TwitterModule>()
                 .AddElasticSearch()
+                .AddModule<PagesApiModule>()
                 .AddModule<FacebookModule>().ConfigureAppConfiguration(builder =>
                 {
                     builder.AddUserSecrets<Importer>();
