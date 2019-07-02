@@ -35,7 +35,7 @@ namespace BioEngine.BRC.Importer.Tests
                 {
                     builder.AddUserSecrets<Importer>();
                     builder.AddEnvironmentVariables();
-                });
+                }).Run<ImporterStartup>();
         }
     }
 
