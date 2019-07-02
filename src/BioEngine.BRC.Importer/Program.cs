@@ -160,7 +160,6 @@ namespace BioEngine.BRC.Importer
         public int Id;
         public string Title;
         public string Url;
-        public string FullUrl;
         public string Logo;
         public string Desc;
     }

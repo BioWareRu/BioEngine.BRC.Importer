@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using BioEngine.BRC.Domain;
 using BioEngine.BRC.Domain.Entities;
 using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
@@ -674,7 +675,6 @@ namespace BioEngine.BRC.Importer
                 }
 
                 _topicsMap.Add(topicExport.Id, topic.Id);
-                _redirects.Add(topicExport.FullUrl, _linkGenerator.GeneratePublicUrl(topic, site).ToString());
             }
         }
 
@@ -744,7 +744,8 @@ namespace BioEngine.BRC.Importer
                         $"developers/{developer.DateAdded.Year.ToString()}/{developer.DateAdded.Month.ToString()}");
 
                     await _dbContext.AddAsync(developer);
-                    _redirects.Add(dev.FullUrl, _linkGenerator.GeneratePublicUrl(developer, site).ToString());
+                    _redirects.Add(dev.FullUrl,
+                        _linkGenerator.GenerateUrl(BrcDomainRoutes.DeveloperPosts, developer, site).ToString());
                 }
 
                 _developersMap.Add(dev.Id, developer.Id);
