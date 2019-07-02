@@ -7,29 +7,29 @@
     <UserSecretsId>bw</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.7"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0-preview6.19304.6"/>
-    <PackageReference Include="BioEngine.Core.Logging.Graylog" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <PackageReference Include="BioEngine.Core.Seo" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <PackageReference Include="BioEngine.BRC.Common" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.BRC.Common')"/>
-    <PackageReference Include="BioEngine.Extra.IPB" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Extra.IPB')"/>
-    <PackageReference Include="BioEngine.Extra.Twitter" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Extra.Twitter')"/>
-    <PackageReference Include="BioEngine.Extra.Facebook" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Extra.Facebook')"/>
-    <PackageReference Include="BioEngine.Core.Posts.Api" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <PackageReference Include="BioEngine.Core.Pages.Api" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0-preview6.19304.6"/>
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.8" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0-preview6.19304.6" />
+    <PackageReference Include="BioEngine.Core.Logging.Graylog" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <PackageReference Include="BioEngine.Core.Seo" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <PackageReference Include="BioEngine.BRC.Common" Version="3.0.*" Condition="!Exists('..\..\..\BioEngine.BRC.Common')" />
+    <PackageReference Include="BioEngine.Extra.IPB" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Extra.IPB')" />
+    <PackageReference Include="BioEngine.Extra.Twitter" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Extra.Twitter')" />
+    <PackageReference Include="BioEngine.Extra.Facebook" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Extra.Facebook')" />
+    <PackageReference Include="BioEngine.Core.Posts.Api" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <PackageReference Include="BioEngine.Core.Pages.Api" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0-preview6.19304.6" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\BioEngine.BRC.Common\src\BioEngine.BRC.Common\BioEngine.BRC.Common.csproj" Condition="Exists('..\..\..\BioEngine.BRC.Common')"/>
-    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Seo\BioEngine.Core.Seo.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Logging.Graylog\BioEngine.Core.Logging.Graylog.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Posts.Api\BioEngine.Core.Posts.Api.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Pages.Api\BioEngine.Core.Pages.Api.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')"/>
-    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.IPB\src\BioEngine.Extra.IPB\BioEngine.Extra.IPB.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.IPB')"/>
-    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.Twitter\src\BioEngine.Extra.Twitter\BioEngine.Extra.Twitter.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.Twitter')"/>
-    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.Facebook\src\BioEngine.Extra.Facebook\BioEngine.Extra.Facebook.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.Facebook')"/>
+    <ProjectReference Include="..\..\..\BioEngine.BRC.Common\src\BioEngine.BRC.Common\BioEngine.BRC.Common.csproj" Condition="Exists('..\..\..\BioEngine.BRC.Common')" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Seo\BioEngine.Core.Seo.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Logging.Graylog\BioEngine.Core.Logging.Graylog.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Posts.Api\BioEngine.Core.Posts.Api.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Pages.Api\BioEngine.Core.Pages.Api.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.IPB\src\BioEngine.Extra.IPB\BioEngine.Extra.IPB.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.IPB')" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.Twitter\src\BioEngine.Extra.Twitter\BioEngine.Extra.Twitter.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.Twitter')" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.Facebook\src\BioEngine.Extra.Facebook\BioEngine.Extra.Facebook.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.Facebook')" />
   </ItemGroup>
   <ItemGroup>
-    <_ContentIncludedByDefault Remove="Properties\launchSettings.json"/>
+    <_ContentIncludedByDefault Remove="Properties\launchSettings.json" />
   </ItemGroup>
 </Project>
