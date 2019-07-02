@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using BioEngine.BRC.Common;
+using BioEngine.Core.Api;
 using BioEngine.Core.Pages.Api;
 using BioEngine.Core.Posts.Api;
 using BioEngine.Core.Seo;
@@ -11,8 +12,11 @@ using BioEngine.Extra.IPB;
 using BioEngine.Extra.Twitter;
 using Flurl.Http;
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -69,7 +73,7 @@ namespace BioEngine.BRC.Importer
                 {
                     builder.AddUserSecrets<Importer>();
                     builder.AddEnvironmentVariables();
-                }).ExecuteAsync(async services =>
+                }).ExecuteAsync<ImporterStartup>(async services =>
                 {
                     var logger = services.GetRequiredService<ILogger<Importer>>();
                     var options = services.GetRequiredService<IOptions<ImporterOptions>>().Value;
@@ -85,6 +89,22 @@ namespace BioEngine.BRC.Importer
                 });
         }
     }
+
+    public class ImporterStartup : BioEngineApiStartup
+    {
+        public ImporterStartup(IConfiguration configuration, IHostEnvironment hostEnvironment) : base(configuration,
+            hostEnvironment)
+        {
+        }
+
+        protected override void ConfigureEndpoints(IApplicationBuilder app, IHostEnvironment env,
+            IEndpointRouteBuilder endpoints)
+        {
+            base.ConfigureEndpoints(app, env, endpoints);
+            endpoints.AddBrcRoutes();
+        }
+    }
+
 
     #region dto    
 
