@@ -7,5 +7,6 @@ namespace BioEngine.BRC.Importer
         public string ApiUri { get; set; }
         public string ApiToken { get; set; }
         public Guid SiteId { get; set; }
+        public string OutputPath { get; set; }
     }
 }

@@ -35,6 +35,7 @@ namespace BioEngine.BRC.Importer
                         options.ApiUri = hostBuilder.Configuration["BRC_EXPORT_API_URL"];
                         options.ApiToken = hostBuilder.Configuration["BRC_EXPORT_API_TOKEN"];
                         options.SiteId = Guid.Parse(hostBuilder.Configuration["BRC_IMPORT_SITE_ID"]);
+                        options.OutputPath = hostBuilder.Configuration["BRC_IMPORT_OUTPUT_PATH"];
                     });
                 })
                 .AddPostgresDb()
@@ -77,7 +78,7 @@ namespace BioEngine.BRC.Importer
                     var data = await options.ApiUri.WithHeader("Authorization", $"Bearer {options.ApiToken}")
                         .GetJsonAsync<Export>();
                     logger.LogInformation("Data is downloaded");
-                    
+
                     logger.LogInformation("Import for site {siteId}", options.SiteId);
                     await importer.ImportAsync(options.SiteId, data);
                     logger.LogInformation("Import done");
@@ -90,174 +91,184 @@ namespace BioEngine.BRC.Importer
     [PublicAPI]
     public class Export
     {
-        public List<DeveloperExport> Developers { get; set; } = new List<DeveloperExport>();
-        public List<GameExport> Games { get; set; } = new List<GameExport>();
-        public List<TopicExport> Topics { get; set; } = new List<TopicExport>();
-        public List<NewsExport> News { get; set; } = new List<NewsExport>();
-        public List<ArticleCatExport> ArticlesCats { get; set; } = new List<ArticleCatExport>();
-        public List<ArticleExport> Articles { get; set; } = new List<ArticleExport>();
-        public List<FileCatExport> FilesCats { get; set; } = new List<FileCatExport>();
-        public List<FileExport> Files { get; set; } = new List<FileExport>();
-        public List<GalleryCatExport> GalleryCats { get; set; } = new List<GalleryCatExport>();
-        public List<GalleryExport> GalleryPics { get; set; } = new List<GalleryExport>();
+        public List<DeveloperExport> Developers = new List<DeveloperExport>();
+        public List<GameExport> Games = new List<GameExport>();
+        public List<TopicExport> Topics = new List<TopicExport>();
+        public List<NewsExport> News = new List<NewsExport>();
+        public List<ArticleCatExport> ArticlesCats = new List<ArticleCatExport>();
+        public List<ArticleExport> Articles = new List<ArticleExport>();
+        public List<FileCatExport> FilesCats = new List<FileCatExport>();
+        public List<FileExport> Files = new List<FileExport>();
+        public List<GalleryCatExport> GalleryCats = new List<GalleryCatExport>();
+        public List<GalleryExport> GalleryPics = new List<GalleryExport>();
     }
 
 
     public class DeveloperExport
     {
-        public int Id { get; set; }
-        public string Url { get; set; }
-        public string Name { get; set; }
-        public string Info { get; set; }
-        public string Desc { get; set; }
-        public string Logo { get; set; }
+        public int Id;
+        public string Url;
+        public string FullUrl;
+        public string Name;
+        public string Info;
+        public string Desc;
+        public string Logo;
     }
 
     public class GameExport
     {
-        public int Id { get; set; }
-        public int DeveloperId { get; set; }
-        public string Url { get; set; }
-        public string Title { get; set; }
-        public string Genre { get; set; }
-        public string ReleaseDate { get; set; }
-        public string Platforms { get; set; }
-        public string Desc { get; set; }
-        public string Keywords { get; set; }
-        public string Publisher { get; set; }
-        public string Localizator { get; set; }
-        public string Logo { get; set; }
-        public string SmallLogo { get; set; }
-        public DateTimeOffset Date { get; set; }
-        public string TweetTag { get; set; }
+        public int Id;
+        public int DeveloperId;
+        public string Url;
+        public string FullUrl;
+        public string Title;
+        public string Genre;
+        public string ReleaseDate;
+        public string Platforms;
+        public string Desc;
+        public string Keywords;
+        public string Publisher;
+        public string Localizator;
+        public string Logo;
+        public string SmallLogo;
+        public DateTimeOffset Date;
+        public string TweetTag;
     }
 
     public class TopicExport
     {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string Url { get; set; }
-        public string Logo { get; set; }
-        public string Desc { get; set; }
+        public int Id;
+        public string Title;
+        public string Url;
+        public string FullUrl;
+        public string Logo;
+        public string Desc;
     }
 
     public class NewsExport
     {
-        public int Id { get; set; }
+        public int Id;
 
-        public int? GameId { get; set; }
-        public int? DeveloperId { get; set; }
-        public int? TopicId { get; set; }
-        public string Url { get; set; }
-        public string Source { get; set; }
-        public string Title { get; set; }
-        public string ShortText { get; set; }
-        public string AddText { get; set; }
-        public int AuthorId { get; set; }
-        public int? ForumTopicId { get; set; }
-        public int? ForumPostId { get; set; }
-        public int Sticky { get; set; }
-        public DateTimeOffset Date { get; set; }
-        public DateTimeOffset LastChangeDate { get; set; }
-        public int Pub { get; set; }
-        public int Comments { get; set; }
-        public long? TwitterId { get; set; }
-        public string FacebookId { get; set; }
+        public int? GameId;
+        public int? DeveloperId;
+        public int? TopicId;
+        public string Url;
+        public string FullUrl;
+        public string Source;
+        public string Title;
+        public string ShortText;
+        public string AddText;
+        public int AuthorId;
+        public int? ForumTopicId;
+        public int? ForumPostId;
+        public int Sticky;
+        public DateTimeOffset Date;
+        public DateTimeOffset LastChangeDate;
+        public int Pub;
+        public int Comments;
+        public long? TwitterId;
+        public string FacebookId;
     }
 
     public class ArticleCatExport
     {
-        public int Id { get; set; }
-        public int? CatId { get; set; }
-        public int? GameId { get; set; }
-        public int? DeveloperId { get; set; }
-        public int? TopicId { get; set; }
-        public string Title { get; set; }
-        public string Url { get; set; }
-        public string Desc { get; set; }
-        public string Content { get; set; }
+        public int Id;
+        public int? CatId;
+        public int? GameId;
+        public int? DeveloperId;
+        public int? TopicId;
+        public string Title;
+        public string Url;
+        public string FullUrl;
+        public string Desc;
+        public string Content;
     }
 
     public class ArticleExport
     {
-        public int Id { get; set; }
+        public int Id;
 
-        public int? GameId { get; set; }
-        public int? DeveloperId { get; set; }
-        public int? TopicId { get; set; }
-        public string Url { get; set; }
-        public string Source { get; set; }
-        public int? CatId { get; set; }
-        public string Title { get; set; }
-        public string Announce { get; set; }
-        public string Text { get; set; }
-        public int AuthorId { get; set; }
-        public int Count { get; set; }
-        public DateTimeOffset Date { get; set; }
-        public int Pub { get; set; }
+        public int? GameId;
+        public int? DeveloperId;
+        public int? TopicId;
+        public string Url;
+        public string FullUrl;
+        public string Source;
+        public int? CatId;
+        public string Title;
+        public string Announce;
+        public string Text;
+        public int AuthorId;
+        public int Count;
+        public DateTimeOffset Date;
+        public int Pub;
     }
 
     public class FileCatExport
     {
-        public int Id { get; set; }
-        public int? CatId { get; set; }
-        public int? GameId { get; set; }
-        public int? DeveloperId { get; set; }
-        public int? TopicId { get; set; }
-        public string Title { get; set; }
-        public string Desc { get; set; }
-        public string Url { get; set; }
+        public int Id;
+        public int? CatId;
+        public int? GameId;
+        public int? DeveloperId;
+        public int? TopicId;
+        public string Title;
+        public string Desc;
+        public string Url;
+        public string FullUrl;
     }
 
     public class FileExport
     {
-        public int Id { get; set; }
+        public int Id;
 
-        public int? GameId { get; set; }
-        public int? DeveloperId { get; set; }
-        public string Url { get; set; }
-        public int CatId { get; set; }
-        public string Title { get; set; }
-        public string Desc { get; set; }
-        public string Announce { get; set; }
-        public string Link { get; set; }
-        public int Size { get; set; }
-        public string YtId { get; set; }
-        public int AuthorId { get; set; }
-        public int Count { get; set; }
-        public DateTimeOffset Date { get; set; }
+        public int? GameId;
+        public int? DeveloperId;
+        public string Url;
+        public string FullUrl;
+        public int CatId;
+        public string Title;
+        public string Desc;
+        public string Announce;
+        public string Link;
+        public int Size;
+        public string YtId;
+        public int AuthorId;
+        public int Count;
+        public DateTimeOffset Date;
     }
 
     public class GalleryCatExport
     {
-        public int Id { get; set; }
-        public int? CatId { get; set; }
-        public int? GameId { get; set; }
-        public int? DeveloperId { get; set; }
-        public int? TopicId { get; set; }
-        public string Title { get; set; }
-        public string Desc { get; set; }
-        public string Url { get; set; }
+        public int Id;
+        public int? CatId;
+        public int? GameId;
+        public int? DeveloperId;
+        public int? TopicId;
+        public string Title;
+        public string Desc;
+        public string Url;
+        public string FullUrl;
     }
 
     public class GalleryExport
     {
-        public int Id { get; set; }
+        public int Id;
 
-        public int? GameId { get; set; }
-        public int? DeveloperId { get; set; }
-        public int CatId { get; set; }
-        public string Desc { get; set; }
-        public int Pub { get; set; }
-        public int AuthorId { get; set; }
-        public DateTimeOffset Date { get; set; }
-        public List<GalleryPicExport> Files { get; set; }
+        public int? GameId;
+        public int? DeveloperId;
+        public int CatId;
+        public string Desc;
+        public int Pub;
+        public int AuthorId;
+        public DateTimeOffset Date;
+        public List<GalleryPicExport> Files;
+        public string FullUrl;
     }
 
     public class GalleryPicExport
     {
-        public string Url { get; set; }
-        public string FileName { get; set; }
+        public string Url;
+        public string FileName;
     }
 
     #endregion

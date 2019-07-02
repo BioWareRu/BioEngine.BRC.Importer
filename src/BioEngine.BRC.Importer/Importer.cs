@@ -9,13 +9,16 @@ using BioEngine.Core.Entities;
 using BioEngine.Core.Entities.Blocks;
 using BioEngine.Core.Posts.Entities;
 using BioEngine.Core.Properties;
+using BioEngine.Core.Routing;
 using BioEngine.Core.Seo;
 using BioEngine.Extra.Facebook.Entities;
 using BioEngine.Extra.IPB.Publishing;
 using BioEngine.Extra.Twitter;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BioEngine.BRC.Importer
 {
@@ -27,13 +30,17 @@ namespace BioEngine.BRC.Importer
         private readonly PropertiesProvider _propertiesProvider;
         private readonly HtmlParser _htmlParser;
         private readonly BioEntitiesManager _entitiesManager;
+        private readonly LinkGenerator _linkGenerator;
         private Dictionary<int, Guid> _developersMap;
         private Dictionary<int, Guid> _gamesMap;
         private Dictionary<int, Guid> _topicsMap;
         private List<Tag> _tags;
+        private Dictionary<string, string> _redirects;
+        private readonly ImporterOptions _options;
 
         public Importer(BioContext dbContext, ILogger<Importer> logger, FilesUploader filesUploader,
-            PropertiesProvider propertiesProvider, HtmlParser htmlParser, BioEntitiesManager entitiesManager)
+            PropertiesProvider propertiesProvider, HtmlParser htmlParser, BioEntitiesManager entitiesManager,
+            LinkGenerator linkGenerator, IOptions<ImporterOptions> options)
         {
             _dbContext = dbContext;
             _logger = logger;
@@ -41,6 +48,8 @@ namespace BioEngine.BRC.Importer
             _propertiesProvider = propertiesProvider;
             _htmlParser = htmlParser;
             _entitiesManager = entitiesManager;
+            _linkGenerator = linkGenerator;
+            _options = options.Value;
         }
 
         public async Task ImportAsync(Guid siteId, Export data)
@@ -62,6 +71,8 @@ namespace BioEngine.BRC.Importer
             try
             {
                 _logger.LogInformation($"Developers: {data.Developers.Count.ToString()}");
+
+                _redirects = new Dictionary<string, string>();
 
                 _developersMap = new Dictionary<int, Guid>();
                 await ImportDevelopersAsync(data, site);
@@ -157,6 +168,11 @@ namespace BioEngine.BRC.Importer
             transaction.Commit(); // TODO: Uncomment when done =)
             //await RollbackAsync(transaction);
 
+            // export redirects
+
+            var redirects = string.Join("\n", _redirects.Select(p => $"{p.Key}          {p.Value};"));
+            var nginxMap = "map $request_uri $redirect_uri {\n" + redirects + "\n}";
+            File.WriteAllText($"{_options.OutputPath}/redirects.conf", nginxMap);
             _logger.LogCritical("Done!");
         }
 
@@ -286,6 +302,7 @@ namespace BioEngine.BRC.Importer
                     }
 
                     posts.Add(post);
+                    _redirects.Add(fileExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
             }
         }
@@ -419,6 +436,7 @@ namespace BioEngine.BRC.Importer
                         }
 
                         posts.Add(post);
+                        _redirects.Add(cat.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                     }
                 }
             }
@@ -524,6 +542,7 @@ namespace BioEngine.BRC.Importer
                     }
 
                     posts.Add(post);
+                    _redirects.Add(articleExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
             }
         }
@@ -614,6 +633,7 @@ namespace BioEngine.BRC.Importer
 
                     posts.Add(post);
                     newsMap.Add(newsExport, post);
+                    _redirects.Add(newsExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
             }
         }
@@ -654,6 +674,7 @@ namespace BioEngine.BRC.Importer
                 }
 
                 _topicsMap.Add(topicExport.Id, topic.Id);
+                _redirects.Add(topicExport.FullUrl, _linkGenerator.GeneratePublicUrl(topic, site).ToString());
             }
         }
 
@@ -695,6 +716,7 @@ namespace BioEngine.BRC.Importer
                 }
 
                 _gamesMap.Add(gameExport.Id, game.Id);
+                _redirects.Add(gameExport.FullUrl, _linkGenerator.GeneratePublicUrl(game, site).ToString());
             }
         }
 
@@ -722,6 +744,7 @@ namespace BioEngine.BRC.Importer
                         $"developers/{developer.DateAdded.Year.ToString()}/{developer.DateAdded.Month.ToString()}");
 
                     await _dbContext.AddAsync(developer);
+                    _redirects.Add(dev.FullUrl, _linkGenerator.GeneratePublicUrl(developer, site).ToString());
                 }
 
                 _developersMap.Add(dev.Id, developer.Id);
