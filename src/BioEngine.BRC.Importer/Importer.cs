@@ -59,22 +59,20 @@ namespace BioEngine.BRC.Importer
 
             _filesUploader.BeginBatch();
 
-            var emptyLogo =
-                await _filesUploader.UploadFromUrlAsync("https://dummyimage.com/200x200/000/fff", "tmp", "dummy.png");
             try
             {
                 _logger.LogInformation($"Developers: {data.Developers.Count.ToString()}");
 
                 _developersMap = new Dictionary<int, Guid>();
-                await ImportDevelopersAsync(data, site, emptyLogo);
+                await ImportDevelopersAsync(data, site);
 
                 _logger.LogInformation($"Games: {data.Games.Count.ToString()}");
                 _gamesMap = new Dictionary<int, Guid>();
-                await ImportGamesAsync(data, site, emptyLogo);
+                await ImportGamesAsync(data, site);
 
                 _logger.LogInformation($"Topics: {data.Topics.Count.ToString()}");
                 _topicsMap = new Dictionary<int, Guid>();
-                await ImportTopicsAsync(data, site, emptyLogo);
+                await ImportTopicsAsync(data, site);
 
                 var posts = new List<Post>();
                 _logger.LogWarning("News");
@@ -627,7 +625,7 @@ namespace BioEngine.BRC.Importer
         }
 
 
-        private async Task ImportTopicsAsync(Export data, Site site, StorageItem emptyLogo)
+        private async Task ImportTopicsAsync(Export data, Site site)
         {
             foreach (var topicExport in data.Topics)
             {
@@ -651,11 +649,6 @@ namespace BioEngine.BRC.Importer
 
                     topic.Blocks = await GetBlocksAsync(topicExport.Desc, data,
                         $"topics/{topic.DateAdded.Year.ToString()}/{topic.DateAdded.Month.ToString()}");
-                    var logo = await _filesUploader.UploadFromUrlAsync(topicExport.Logo,
-                                   Path.Combine("sections", "topics")) ??
-                               emptyLogo;
-                    topic.Data.Logo = logo;
-                    topic.Data.LogoSmall = logo;
 
                     await _dbContext.AddAsync(topic);
                 }
@@ -664,8 +657,7 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private async Task ImportGamesAsync(Export data, Site site,
-            StorageItem emptyLogo)
+        private async Task ImportGamesAsync(Export data, Site site)
         {
             foreach (var gameExport in data.Games)
             {
@@ -693,14 +685,6 @@ namespace BioEngine.BRC.Importer
                         game.ParentId = _developersMap[gameExport.DeveloperId];
                     }
 
-                    game.Data.Logo =
-                        await _filesUploader.UploadFromUrlAsync(gameExport.Logo, Path.Combine("sections", "games")) ??
-                        emptyLogo;
-                    game.Data.LogoSmall =
-                        await _filesUploader.UploadFromUrlAsync(gameExport.SmallLogo,
-                            Path.Combine("sections", "games")) ??
-                        emptyLogo;
-
                     await _dbContext.AddAsync(game);
 
                     if (!string.IsNullOrEmpty(gameExport.Keywords))
@@ -714,7 +698,7 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private async Task ImportDevelopersAsync(Export data, Site site, StorageItem emptyLogo)
+        private async Task ImportDevelopersAsync(Export data, Site site)
         {
             foreach (var dev in data.Developers)
             {
@@ -736,12 +720,6 @@ namespace BioEngine.BRC.Importer
                     };
                     developer.Blocks = await GetBlocksAsync(dev.Desc, data,
                         $"developers/{developer.DateAdded.Year.ToString()}/{developer.DateAdded.Month.ToString()}");
-                    var logo =
-                        await _filesUploader.UploadFromUrlAsync(dev.Logo, Path.Combine("sections", "developers")) ??
-                        emptyLogo;
-
-                    developer.Data.Logo = logo;
-                    developer.Data.LogoSmall = logo;
 
                     await _dbContext.AddAsync(developer);
                 }
