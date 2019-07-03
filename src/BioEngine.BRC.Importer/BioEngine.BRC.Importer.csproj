@@ -29,7 +29,4 @@
     <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.Twitter\src\BioEngine.Extra.Twitter\BioEngine.Extra.Twitter.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.Twitter')" />
     <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Extra.Facebook\src\BioEngine.Extra.Facebook\BioEngine.Extra.Facebook.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Extra.Facebook')" />
   </ItemGroup>
-  <ItemGroup>
-    <_ContentIncludedByDefault Remove="Properties\launchSettings.json" />
-  </ItemGroup>
 </Project>
