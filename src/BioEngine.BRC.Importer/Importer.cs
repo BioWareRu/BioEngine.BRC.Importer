@@ -303,7 +303,7 @@ namespace BioEngine.BRC.Importer
                     }
 
                     posts.Add(post);
-                    _redirects.Add(fileExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
+                    RegisterRedirect(fileExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
             }
         }
@@ -437,7 +437,7 @@ namespace BioEngine.BRC.Importer
                         }
 
                         posts.Add(post);
-                        _redirects.Add(cat.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
+                        RegisterRedirect(cat.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                     }
                 }
             }
@@ -543,7 +543,7 @@ namespace BioEngine.BRC.Importer
                     }
 
                     posts.Add(post);
-                    _redirects.Add(articleExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
+                    RegisterRedirect(articleExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
             }
         }
@@ -634,7 +634,7 @@ namespace BioEngine.BRC.Importer
 
                     posts.Add(post);
                     newsMap.Add(newsExport, post);
-                    _redirects.Add(newsExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
+                    RegisterRedirect(newsExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
             }
         }
@@ -716,7 +716,7 @@ namespace BioEngine.BRC.Importer
                 }
 
                 _gamesMap.Add(gameExport.Id, game.Id);
-                _redirects.Add(gameExport.FullUrl, _linkGenerator.GeneratePublicUrl(game, site).ToString());
+                RegisterRedirect(gameExport.FullUrl, _linkGenerator.GeneratePublicUrl(game, site).ToString());
             }
         }
 
@@ -744,12 +744,33 @@ namespace BioEngine.BRC.Importer
                         $"developers/{developer.DateAdded.Year.ToString()}/{developer.DateAdded.Month.ToString()}");
 
                     await _dbContext.AddAsync(developer);
-                    _redirects.Add(dev.FullUrl,
+                    RegisterRedirect(dev.FullUrl,
                         _linkGenerator.GenerateUrl(BrcDomainRoutes.DeveloperPosts, developer, site).ToString());
                 }
 
                 _developersMap.Add(dev.Id, developer.Id);
             }
+        }
+
+        private void RegisterRedirect(string oldUrl, string newUrl)
+        {
+            if (string.IsNullOrEmpty(oldUrl))
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(newUrl))
+            {
+                return;
+            }
+
+            if (_redirects.ContainsKey(oldUrl))
+            {
+                _logger.LogInformation("Duplicate url: {oldUrl}. New url: {newUrl}", oldUrl, newUrl);
+                return;
+            }
+
+            _redirects.Add(oldUrl, newUrl);
         }
 
         private async Task PrintStatsAsync()
