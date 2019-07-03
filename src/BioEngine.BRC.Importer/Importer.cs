@@ -745,7 +745,7 @@ namespace BioEngine.BRC.Importer
 
                     await _dbContext.AddAsync(developer);
                     RegisterRedirect(dev.FullUrl,
-                        _linkGenerator.GenerateUrl(BrcDomainRoutes.DeveloperPosts, developer, site).ToString());
+                        _linkGenerator.GenerateUrl(BrcDomainRoutes.DeveloperPosts, new {url = developer.Url}, site).ToString());
                 }
 
                 _developersMap.Add(dev.Id, developer.Id);
