@@ -24,10 +24,14 @@ namespace BioEngine.BRC.Importer
         private ContentBlock ParseIframe(HtmlNode node)
         {
             var srcUrl = node.Attributes["src"].Value;
-            if (srcUrl.Contains("www.youtube.com/embed"))
+            if (srcUrl.Contains("www.youtube.com"))
             {
-                var ytId = srcUrl.Substring(srcUrl.LastIndexOf('/') + 1);
-                return new YoutubeBlock {Id = Guid.NewGuid(), Data = new YoutubeBlockData {YoutubeId = ytId}};
+                var uri = new Uri(srcUrl);
+
+                var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+                var videoId = queryParams.ContainsKey("v") ? queryParams["v"][0] : uri.Segments.Last();
+                return new YoutubeBlock {Id = Guid.NewGuid(), Data = new YoutubeBlockData {YoutubeId = videoId}};
             }
 
             if (srcUrl.Contains("player.twitch.tv"))
@@ -37,17 +41,17 @@ namespace BioEngine.BRC.Importer
                 var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
                 if (queryParams.ContainsKey("video"))
                 {
-                    block.Data.VideoId = queryParams["video"].First();
+                    block.Data.VideoId = queryParams["video"][0];
                 }
 
                 if (queryParams.ContainsKey("channel"))
                 {
-                    block.Data.ChannelId = queryParams["channel"].First();
+                    block.Data.ChannelId = queryParams["channel"][0];
                 }
 
                 if (queryParams.ContainsKey("collection"))
                 {
-                    block.Data.CollectionId = queryParams["collection"].First();
+                    block.Data.CollectionId = queryParams["collection"][0];
                 }
 
                 return block;
