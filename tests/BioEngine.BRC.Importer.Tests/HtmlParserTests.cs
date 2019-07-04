@@ -49,7 +49,7 @@ namespace BioEngine.BRC.Importer.Tests
         [Fact]
         public async Task TestParseYoutubeAsync()
         {
-            var html = "<div><iframe src=\"https://www.youtube.com/embed/MupwaapJIy8\" /></div>";
+            var html = @"<p style=""text-align:center""><iframe width=""600"" height=""338"" src=""//www.youtube.com/embed/8bHwTDl231A?rel=0"" frameborder=""0""></iframe></p>";
             var scope = GetScope();
             var parser = scope.Get<HtmlParser>();
             var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
@@ -58,7 +58,7 @@ namespace BioEngine.BRC.Importer.Tests
             Assert.IsType<YoutubeBlock>(blocks.First());
             if (blocks.First() is YoutubeBlock youtubeBlock)
             {
-                Assert.Equal("MupwaapJIy8", youtubeBlock.Data.YoutubeId);
+                Assert.Equal("8bHwTDl231A", youtubeBlock.Data.YoutubeId);
             }
         }
 

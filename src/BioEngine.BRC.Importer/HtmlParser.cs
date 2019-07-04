@@ -24,8 +24,13 @@ namespace BioEngine.BRC.Importer
         private ContentBlock ParseIframe(HtmlNode node)
         {
             var srcUrl = node.Attributes["src"].Value;
-            if (srcUrl.Contains("www.youtube.com"))
+            if (srcUrl.Contains("youtube.com"))
             {
+                if (srcUrl.StartsWith("//"))
+                {
+                    srcUrl = "https:" + srcUrl;
+                }
+
                 var uri = new Uri(srcUrl);
 
                 var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
