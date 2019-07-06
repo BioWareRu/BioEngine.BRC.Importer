@@ -16,6 +16,15 @@ stages:
                       includePreviewVersions: true
 
                 - task: DotNetCoreCLI@2
+                  displayName: 'Restore packages'
+                  inputs:
+                      command: restore
+                      projects: '**/*.csproj'
+                      feedsToUse: 'select'
+                      verbosityRestore: 'minimal'
+                      vstsFeed: 'BioEngine'
+
+                - task: DotNetCoreCLI@2
                   displayName: 'Publish project'
                   inputs:
                       command: custom
@@ -23,9 +32,8 @@ stages:
                       publishWebProjects: false
                       zipAfterPublish: false
                       modifyOutputPath: false
-                      arguments: '-c Release --output ./publish'
+                      arguments: '--no-restore -c Release --output ./publish'
                       projects: '**/*.csproj'
-                      feedRestore: 'BioEngine'
                       
                 - task: PublishPipelineArtifact@0
                   displayName: 'Publish app as artifact'
