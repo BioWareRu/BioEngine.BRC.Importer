@@ -49,21 +49,22 @@ namespace BioEngine.BRC.Importer
                 .AddElasticSearch()
                 .AddS3Storage()
                 .AddLogging()
-                .AddModule<IPBSiteModule, IPBModuleConfig>((configuration, env) =>
+                .AddModule<IPBSiteModule, IPBSiteModuleConfig>((configuration, env) =>
                 {
                     if (!Uri.TryCreate(configuration["BE_IPB_URL"], UriKind.Absolute, out var ipbUrl))
                     {
                         throw new ArgumentException($"Can't parse IPB url; {configuration["BE_IPB_URL"]}");
                     }
 
-                    return new IPBModuleConfig(ipbUrl)
+                    return new IPBSiteModuleConfig(ipbUrl)
                     {
                         ApiClientId = configuration["BE_IPB_OAUTH_CLIENT_ID"],
                         ApiClientSecret = configuration["BE_IPB_OAUTH_CLIENT_SECRET"],
                         CallbackPath = "/login/ipb",
                         AuthorizationEndpoint = configuration["BE_IPB_AUTHORIZATION_ENDPOINT"],
                         TokenEndpoint = configuration["BE_IPB_TOKEN_ENDPOINT"],
-                        ApiReadonlyKey = configuration["BE_IPB_API_READONLY_KEY"]
+                        ApiReadonlyKey = configuration["BE_IPB_API_READONLY_KEY"],
+                        DataProtectionPath = configuration["BE_IPB_DATA_PROTECTION_PATH"]
                     };
                 })
                 .AddModule<SeoModule>()
