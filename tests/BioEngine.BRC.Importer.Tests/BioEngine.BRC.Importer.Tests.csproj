@@ -11,11 +11,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
+    <PackageReference Include="BioEngine.Core.Tests.Xunit" Version="3.0.*" Condition="!Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BioEngine.BRC.Importer\BioEngine.BRC.Importer.csproj" />
+    <ProjectReference Include="..\..\..\..\BioEngine\BioEngine.Core\src\BioEngine.Core.Tests.Xunit\BioEngine.Core.Tests.Xunit.csproj" Condition="Exists('..\..\..\..\BioEngine\BioEngine.Core')" />
   </ItemGroup>
 
 </Project>

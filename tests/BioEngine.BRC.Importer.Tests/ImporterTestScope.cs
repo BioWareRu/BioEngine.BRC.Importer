@@ -4,7 +4,7 @@ using BioEngine.BRC.Common;
 using BioEngine.Core.Pages.Api;
 using BioEngine.Core.Seo;
 using BioEngine.Core.Storage;
-using BioEngine.Core.Tests;
+using BioEngine.Core.Tests.Xunit;
 using BioEngine.Extra.Facebook;
 using BioEngine.Extra.Twitter;
 using Microsoft.Extensions.Configuration;
