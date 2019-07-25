@@ -3,7 +3,7 @@ using System.IO;
 using BioEngine.BRC.Common;
 using BioEngine.Core.Pages.Api;
 using BioEngine.Core.Seo;
-using BioEngine.Core.Storage;
+using BioEngine.Core.Storage.FileSystem;
 using BioEngine.Core.Tests.Xunit;
 using BioEngine.Extra.Facebook;
 using BioEngine.Extra.Twitter;
