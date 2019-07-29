@@ -664,7 +664,6 @@ namespace BioEngine.BRC.Importer
                         DateUpdated = DateTimeOffset.UtcNow,
                         DatePublished = DateTimeOffset.UtcNow,
                         Data = new TopicData {Hashtag = string.Empty,},
-                        Properties = new List<PropertiesEntry>(),
                         Blocks = new List<ContentBlock>()
                     };
 
@@ -696,7 +695,6 @@ namespace BioEngine.BRC.Importer
                         DateUpdated = gameExport.Date,
                         DatePublished = gameExport.Date,
                         Data = new GameData {Platforms = new Platform[0], Hashtag = gameExport.TweetTag},
-                        Properties = new List<PropertiesEntry>(),
                         Blocks = new List<ContentBlock>()
                     };
                     game.Blocks = await GetBlocksAsync(gameExport.Desc, data,
