@@ -49,7 +49,8 @@ namespace BioEngine.BRC.Importer.Tests
         [Fact]
         public async Task TestParseYoutubeAsync()
         {
-            var html = @"<p style=""text-align:center""><iframe width=""600"" height=""338"" src=""//www.youtube.com/embed/8bHwTDl231A?rel=0"" frameborder=""0""></iframe></p>";
+            var html =
+                @"<p style=""text-align:center""><iframe width=""600"" height=""338"" src=""//www.youtube.com/embed/8bHwTDl231A?rel=0"" frameborder=""0""></iframe></p>";
             var scope = GetScope();
             var parser = scope.Get<HtmlParser>();
             var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
@@ -90,6 +91,21 @@ namespace BioEngine.BRC.Importer.Tests
             Assert.True(blocks.Count == 1);
             Assert.IsType<PictureBlock>(blocks.First());
             Assert.True(blocks.First() is PictureBlock pictureBlock && pictureBlock.Data.Picture.FileSize > 0);
+        }
+
+        [Fact]
+        public async Task TestParsePlainTextAsync()
+        {
+            var html =
+                "Эх, не выдержал Фергус Уркхарт (глава Obsidian Entertainment) и написал пост в теме обсуждения слухов о неанонсированных проектах своей студии на форумах RPG Codex. <br /><br />      Как и предполагалось, обсидиановцы уже вовсю работают над одним неанонсированным проектом и собираются приступить к разработке другого в ближайшие недели. Фергус также сокрушался по поводу низких продаж PC-игр и с сожалением отметил, что для того, чтобы остаться в игровом бизнесе компании придётся заняться разработкой игр для консолей. Главной своей целью на ближайшее время господин Уркхарт считает создание в Obsidian Entertainment трёх полноценных команд, каждая из которых будет заниматься собственным проектом. Расклад следующий: две команды будут разрабатывать игры для консолей и лишь одна займётся PC-проектами.    <p align=\"right\">Новость с <a href=\"http://www.crpg.ru\">CRPG.RU</a></p>";
+
+            var scope = GetScope();
+            var parser = scope.Get<HtmlParser>();
+            var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
+            Assert.NotEmpty(blocks);
+            Assert.Equal(3, blocks.Count);
+            Assert.IsType<TextBlock>(blocks.First());
+            Assert.IsType<TextBlock>(blocks.Last());
         }
     }
 }

@@ -102,71 +102,81 @@ namespace BioEngine.BRC.Importer
             List<GalleryExport> pics)
         {
             var blocks = new List<ContentBlock>();
-            var extractedBlocks = new List<ContentBlock>();
-            foreach (var childNode in node.ChildNodes.ToArray())
+            if (node.Name != "#text")
             {
-                switch (childNode.Name)
+                var extractedBlocks = new List<ContentBlock>();
+                foreach (var childNode in node.ChildNodes.ToArray())
                 {
-                    case "img":
-                        var imgBlock = await ParseImgAsync(childNode, pics, uploadPath);
-                        if (imgBlock != null)
-                        {
-                            extractedBlocks.Add(imgBlock);
-                            var newNodeStr = $"<block id=\"{extractedBlocks.Count.ToString()}\" />";
-                            var newNode = HtmlNode.CreateNode(newNodeStr);
-                            childNode.ParentNode.ReplaceChild(newNode, childNode);
-                        }
-
-                        break;
-                    case "iframe":
-                        var frameBlock = ParseIframe(childNode);
-                        if (frameBlock != null)
-                        {
-                            extractedBlocks.Add(frameBlock);
-                            var newNodeStr = $"<block id=\"{extractedBlocks.Count.ToString()}\" />";
-                            var newNode = HtmlNode.CreateNode(newNodeStr);
-                            childNode.ParentNode.ReplaceChild(newNode, childNode);
-                        }
-
-                        break;
-                }
-            }
-
-            var currentHtml = "";
-            foreach (var childNode in node.ChildNodes)
-            {
-                switch (childNode.Name)
-                {
-                    case "block":
-                        if (!string.IsNullOrEmpty(currentHtml))
-                        {
-                            blocks.Add(new TextBlock
+                    switch (childNode.Name)
+                    {
+                        case "img":
+                            var imgBlock = await ParseImgAsync(childNode, pics, uploadPath);
+                            if (imgBlock != null)
                             {
-                                Id = Guid.NewGuid(),
-                                Position = blocks.Count,
-                                Data = new TextBlockData {Text = currentHtml}
-                            });
-                            currentHtml = "";
-                        }
+                                extractedBlocks.Add(imgBlock);
+                                var newNodeStr = $"<block id=\"{extractedBlocks.Count.ToString()}\" />";
+                                var newNode = HtmlNode.CreateNode(newNodeStr);
+                                childNode.ParentNode.ReplaceChild(newNode, childNode);
+                            }
 
-                        var id = int.Parse(childNode.Attributes["id"].Value);
-                        blocks.Add(extractedBlocks[id - 1]);
-                        break;
-                    default:
-                        if (!string.IsNullOrEmpty(childNode.InnerText.Replace("&nbsp;", "").Trim()))
-                        {
-                            currentHtml += childNode.OuterHtml;
-                        }
+                            break;
+                        case "iframe":
+                            var frameBlock = ParseIframe(childNode);
+                            if (frameBlock != null)
+                            {
+                                extractedBlocks.Add(frameBlock);
+                                var newNodeStr = $"<block id=\"{extractedBlocks.Count.ToString()}\" />";
+                                var newNode = HtmlNode.CreateNode(newNodeStr);
+                                childNode.ParentNode.ReplaceChild(newNode, childNode);
+                            }
 
-                        break;
+                            break;
+                    }
+                }
+
+                var currentHtml = "";
+                foreach (var childNode in node.ChildNodes)
+                {
+                    switch (childNode.Name)
+                    {
+                        case "block":
+                            if (!string.IsNullOrEmpty(currentHtml))
+                            {
+                                blocks.Add(new TextBlock
+                                {
+                                    Id = Guid.NewGuid(),
+                                    Position = blocks.Count,
+                                    Data = new TextBlockData {Text = currentHtml}
+                                });
+                                currentHtml = "";
+                            }
+
+                            var id = int.Parse(childNode.Attributes["id"].Value);
+                            blocks.Add(extractedBlocks[id - 1]);
+                            break;
+                        default:
+                            if (!string.IsNullOrEmpty(childNode.InnerText.Replace("&nbsp;", "").Trim()))
+                            {
+                                currentHtml += childNode.OuterHtml;
+                            }
+
+                            break;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(currentHtml))
+                {
+                    blocks.Add(new TextBlock
+                    {
+                        Id = Guid.NewGuid(), Position = blocks.Count, Data = new TextBlockData {Text = currentHtml}
+                    });
                 }
             }
-
-            if (!string.IsNullOrEmpty(currentHtml))
+            else
             {
                 blocks.Add(new TextBlock
                 {
-                    Id = Guid.NewGuid(), Position = blocks.Count, Data = new TextBlockData {Text = currentHtml}
+                    Id = Guid.NewGuid(), Position = blocks.Count, Data = new TextBlockData {Text = node.InnerHtml.Trim()}
                 });
             }
 
@@ -185,6 +195,7 @@ namespace BioEngine.BRC.Importer
                 {
                     case "p":
                     case "div":
+                    case "#text":
                         blocks.AddRange(await ParseTextAsync(childNode, uploadPath, pics));
                         break;
                     case "blockquote":
