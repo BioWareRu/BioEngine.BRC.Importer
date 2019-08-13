@@ -103,9 +103,22 @@ namespace BioEngine.BRC.Importer.Tests
             var parser = scope.Get<HtmlParser>();
             var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
             Assert.NotEmpty(blocks);
-            Assert.Equal(3, blocks.Count);
+            Assert.Equal(2, blocks.Count);
             Assert.IsType<TextBlock>(blocks.First());
             Assert.IsType<TextBlock>(blocks.Last());
+        }
+
+        [Fact]
+        public async Task TestParsePlainTextWithLinksAsync()
+        {
+            var html =
+                "Закончился приём последних работ в литературном конкурсе BioWare (в котором, напоминаем, требовалось создать небольшой авторский модуль при помощи тулсета Neverwinter Nights). Просмотреть все полученные работы и проголосовать за них Вы сможете <a href=\"http://nwvault.ign.com/View.php?view=Modules.List&amp;category_select_id=28\">здесь</a>. Голосование продлится до 28 февраля, после чего будут оглашены победители, некоторые из которых станут полноправными сотрудниками BioWare. Также, всех победителей ждут и менее значимые призы, вроде кепок и футболок с логотипами BioWare.";
+
+            var scope = GetScope();
+            var parser = scope.Get<HtmlParser>();
+            var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
+            Assert.NotEmpty(blocks);
+            Assert.Equal(1, blocks.Count);
         }
     }
 }

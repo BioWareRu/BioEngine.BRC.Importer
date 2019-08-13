@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Threading.Tasks;
 using BioEngine.BRC.Common;
 using BioEngine.Core.Api;
@@ -19,6 +20,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Serilog.Events;
 
 namespace BioEngine.BRC.Importer
 {
@@ -36,10 +39,27 @@ namespace BioEngine.BRC.Importer
                     collection.AddHttpClient();
                     collection.Configure<ImporterOptions>(options =>
                     {
-                        options.ApiUri = hostBuilder.Configuration["BRC_EXPORT_API_URL"];
-                        options.ApiToken = hostBuilder.Configuration["BRC_EXPORT_API_TOKEN"];
+                        if (!string.IsNullOrEmpty(hostBuilder.Configuration["BRC_IMPORT_FILE_PATH"]))
+                        {
+                            options.ImportFilePath = hostBuilder.Configuration["BRC_IMPORT_FILE_PATH"];
+                        }
+                        else
+                        {
+                            options.ApiUri = hostBuilder.Configuration["BRC_EXPORT_API_URL"];
+                            options.ApiToken = hostBuilder.Configuration["BRC_EXPORT_API_TOKEN"];
+                        }
+
                         options.SiteId = Guid.Parse(hostBuilder.Configuration["BRC_IMPORT_SITE_ID"]);
                         options.OutputPath = hostBuilder.Configuration["BRC_IMPORT_OUTPUT_PATH"];
+                        options.FilesBaseUrl = hostBuilder.Configuration["BRC_IMPORT_FILE_BASE_URL"];
+                        bool.TryParse(hostBuilder.Configuration["BRC_IMPORT_NEWS"], out var importNews);
+                        options.ImportNews = importNews;
+                        bool.TryParse(hostBuilder.Configuration["BRC_IMPORT_ARTICLES"], out var importArticles);
+                        options.ImportArticles = importArticles;
+                        bool.TryParse(hostBuilder.Configuration["BRC_IMPORT_FILES"], out var importFiles);
+                        options.ImportFiles = importFiles;
+                        bool.TryParse(hostBuilder.Configuration["BRC_IMPORT_GALLERY"], out var importGallery);
+                        options.ImportGallery = importGallery;
                     });
                 })
                 .AddPostgresDb()
@@ -48,7 +68,11 @@ namespace BioEngine.BRC.Importer
                 .AddModule<PostsApiModule>()
                 .AddElasticSearch()
                 .AddS3Storage()
-                .AddLogging()
+                .AddLogging(LogEventLevel.Information, LogEventLevel.Information, loggerConfiguration =>
+                {
+                    loggerConfiguration.MinimumLevel.Override("Microsoft", LogEventLevel.Warning);
+                    loggerConfiguration.MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning);
+                })
                 .AddModule<IPBSiteModule, IPBSiteModuleConfig>((configuration, env) =>
                 {
                     if (!Uri.TryCreate(configuration["BE_IPB_URL"], UriKind.Absolute, out var ipbUrl))
@@ -79,10 +103,20 @@ namespace BioEngine.BRC.Importer
                     var logger = services.GetRequiredService<ILogger<Importer>>();
                     var options = services.GetRequiredService<IOptions<ImporterOptions>>().Value;
                     var importer = services.GetRequiredService<Importer>();
-                    logger.LogInformation("Download data from {apiUri}", options.ApiUri);
-                    var data = await options.ApiUri.WithHeader("Authorization", $"Bearer {options.ApiToken}")
-                        .GetJsonAsync<Export>();
-                    logger.LogInformation("Data is downloaded");
+                    Export data;
+                    if (!string.IsNullOrEmpty(options.ImportFilePath))
+                    {
+                        logger.LogInformation("Read data from {path}", options.ImportFilePath);
+                        var json = File.ReadAllText(options.ImportFilePath);
+                        data = JsonConvert.DeserializeObject<Export>(json);
+                    }
+                    else
+                    {
+                        logger.LogInformation("Download data from {apiUri}", options.ApiUri);
+                        data = await options.ApiUri.WithHeader("Authorization", $"Bearer {options.ApiToken}")
+                            .GetJsonAsync<Export>();
+                        logger.LogInformation("Data is downloaded");
+                    }
 
                     logger.LogInformation("Import for site {siteId}", options.SiteId);
                     await importer.ImportAsync(options.SiteId, data);

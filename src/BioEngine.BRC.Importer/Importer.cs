@@ -32,9 +32,9 @@ namespace BioEngine.BRC.Importer
         private readonly HtmlParser _htmlParser;
         private readonly BioEntitiesManager _entitiesManager;
         private readonly LinkGenerator _linkGenerator;
-        private Dictionary<int, Guid> _developersMap;
-        private Dictionary<int, Guid> _gamesMap;
-        private Dictionary<int, Guid> _topicsMap;
+        private Dictionary<int, Developer> _developersMap;
+        private Dictionary<int, Game> _gamesMap;
+        private Dictionary<int, Topic> _topicsMap;
         private List<Tag> _tags;
         private Dictionary<string, string> _redirects;
         private readonly ImporterOptions _options;
@@ -68,6 +68,8 @@ namespace BioEngine.BRC.Importer
             _tags = await _dbContext.Tags.ToListAsync();
 
             _filesUploader.BeginBatch();
+            _propertiesProvider.BeginBatch();
+            _propertiesProvider.DisableChecks();
 
             try
             {
@@ -75,85 +77,122 @@ namespace BioEngine.BRC.Importer
 
                 _redirects = new Dictionary<string, string>();
 
-                _developersMap = new Dictionary<int, Guid>();
+                _developersMap = new Dictionary<int, Developer>();
                 await ImportDevelopersAsync(data, site);
 
                 _logger.LogInformation($"Games: {data.Games.Count.ToString()}");
-                _gamesMap = new Dictionary<int, Guid>();
+                _gamesMap = new Dictionary<int, Game>();
                 await ImportGamesAsync(data, site);
 
                 _logger.LogInformation($"Topics: {data.Topics.Count.ToString()}");
-                _topicsMap = new Dictionary<int, Guid>();
+                _topicsMap = new Dictionary<int, Topic>();
                 await ImportTopicsAsync(data, site);
 
                 var posts = new List<Post>();
-                _logger.LogWarning("News");
                 var newsMap = new Dictionary<NewsExport, Post>();
-                await ImportNewsAsync(data, site, posts, newsMap);
+                if (_options.ImportNews)
+                {
+                    _logger.LogWarning("News");
+                    await ImportNewsAsync(data, site, posts, newsMap);
+                }
 
                 //articles
-
-                _logger.LogWarning("Articles");
-                await ImportArticlesAsync(data, site, posts);
+                if (_options.ImportArticles)
+                {
+                    _logger.LogWarning("Articles");
+                    await ImportArticlesAsync(data, site, posts);
+                }
 
                 // files
-                _logger.LogWarning("Files");
-                await ImportFilesAsync(data, site, posts);
+                if (_options.ImportFiles)
+                {
+                    _logger.LogWarning("Files");
+                    await ImportFilesAsync(data, site, posts);
+                }
+
                 // pictures
-                _logger.LogWarning("Gallery");
-                await ImportGalleryAsync(data, site, posts);
-
-                await _dbContext.AddRangeAsync(posts.OrderBy(p => p.DateAdded));
-                foreach (var post in posts)
+                if (_options.ImportGallery)
                 {
-                    var version = new ContentVersion {Id = Guid.NewGuid(), ContentId = post.Id,};
-                    version.SetContent(post);
-                    version.ChangeAuthorId = post.AuthorId;
-
-                    await _dbContext.AddAsync(version);
+                    _logger.LogWarning("Gallery");
+                    await ImportGalleryAsync(data, site, posts);
                 }
 
-                _logger.LogWarning("Properties");
-                _propertiesProvider.BeginBatch();
-                _propertiesProvider.DisableChecks();
-                foreach (var (news, post) in newsMap)
+                if (posts.Any())
                 {
-                    if (news.TwitterId > 0)
+                    var urls = posts.Select(p => p.Url).ToArray();
+                    var existedPosts = await _dbContext.Set<Post>().Where(p => urls.Contains(p.Url))
+                        .Include(p => p.Blocks)
+                        .ToListAsync();
+                    foreach (var post in posts.OrderBy(p => p.DateAdded))
                     {
-                        _dbContext.Add(new TwitterPublishRecord
+                        var version = new ContentVersion {Id = Guid.NewGuid()};
+                        var existedPost = existedPosts.FirstOrDefault(p => p.Url == post.Url);
+                        if (existedPost != null)
                         {
-                            Type = _entitiesManager.GetKey(post),
-                            ContentId = post.Id,
-                            TweetId = news.TwitterId.Value,
-                            SiteIds = new[] {site.Id}
-                        });
+                            existedPost.Blocks = new List<ContentBlock>();
+                            foreach (ContentBlock block in post.Blocks)
+                            {
+                                block.ContentId = existedPost.Id;
+                                existedPost.Blocks.Add(block);
+                                _dbContext.Blocks.Add(block);
+                            }
+
+                            existedPost.Title = post.Title;
+                            existedPost.SectionIds = post.SectionIds;
+                            existedPost.SiteIds = post.SiteIds;
+                            _dbContext.Update(existedPost);
+                            version.ContentId = existedPost.Id;
+                            version.SetContent(existedPost);
+                        }
+                        else
+                        {
+                            await _dbContext.AddAsync(post);
+                            version.ContentId = post.Id;
+                            version.SetContent(post);
+                        }
+
+                        version.ChangeAuthorId = post.AuthorId;
+                        await _dbContext.AddAsync(version);
                     }
 
-                    if (!string.IsNullOrEmpty(news.FacebookId))
+                    _logger.LogWarning("Properties");
+                    foreach (var (news, post) in newsMap)
                     {
-                        _dbContext.Add(new FacebookPublishRecord
+                        if (news.TwitterId > 0)
                         {
-                            Type = _entitiesManager.GetKey(post),
-                            ContentId = post.Id,
-                            PostId = news.FacebookId,
-                            SiteIds = new[] {site.Id}
-                        });
-                    }
+                            _dbContext.Add(new TwitterPublishRecord
+                            {
+                                Type = _entitiesManager.GetKey(post),
+                                ContentId = post.Id,
+                                TweetId = news.TwitterId.Value,
+                                SiteIds = post.SiteIds
+                            });
+                        }
 
-                    if (news.ForumTopicId > 0 && news.ForumPostId > 0)
-                    {
-                        _dbContext.Add(new IPBPublishRecord
+                        if (!string.IsNullOrEmpty(news.FacebookId))
                         {
-                            Type = _entitiesManager.GetKey(post),
-                            ContentId = post.Id,
-                            TopicId = news.ForumTopicId.Value,
-                            PostId = news.ForumPostId.Value,
-                            SiteIds = new[] {site.Id}
-                        });
+                            _dbContext.Add(new FacebookPublishRecord
+                            {
+                                Type = _entitiesManager.GetKey(post),
+                                ContentId = post.Id,
+                                PostId = news.FacebookId,
+                                SiteIds = post.SiteIds
+                            });
+                        }
+
+                        if (news.ForumTopicId > 0 && news.ForumPostId > 0)
+                        {
+                            _dbContext.Add(new IPBPublishRecord
+                            {
+                                Type = _entitiesManager.GetKey(post),
+                                ContentId = post.Id,
+                                TopicId = news.ForumTopicId.Value,
+                                PostId = news.ForumPostId.Value,
+                                SiteIds = post.SiteIds
+                            });
+                        }
                     }
                 }
-
-                _propertiesProvider.EnableChecks();
             }
             catch (Exception ex)
             {
@@ -162,15 +201,12 @@ namespace BioEngine.BRC.Importer
                 return;
             }
 
-            await _filesUploader.FinishBatchAsync();
             await _dbContext.SaveChangesAsync();
             await PrintStatsAsync();
 
-            transaction.Commit(); // TODO: Uncomment when done =)
-            //await RollbackAsync(transaction);
+            transaction.Commit();
 
             // export redirects
-
             var redirects = string.Join("\n", _redirects.Select(p => $"{p.Key}          {p.Value};"));
             var nginxMap = "map $request_uri $redirect_uri {\n" + redirects + "\n}";
             File.WriteAllText($"{_options.OutputPath}/redirects.conf", nginxMap);
@@ -231,80 +267,77 @@ namespace BioEngine.BRC.Importer
             foreach (var fileExport in data.Files)
             {
                 var url = $"{fileExport.Url}_{fileExport.Id.ToString()}";
-                if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
+                var post = new Post
                 {
-                    var post = new Post
+                    Id = Guid.NewGuid(),
+                    Url = url,
+                    Title = fileExport.Title,
+                    DateAdded = fileExport.Date,
+                    DateUpdated = fileExport.Date,
+                    DatePublished = fileExport.Date,
+                    IsPublished = true,
+                    AuthorId = fileExport.AuthorId.ToString(),
+                    Blocks = new List<ContentBlock>()
+                };
+                if (!string.IsNullOrEmpty(fileExport.Desc))
+                {
+                    post.Blocks.Add(new TextBlock
                     {
-                        Id = Guid.NewGuid(),
-                        Url = url,
-                        Title = fileExport.Title,
-                        SiteIds = new[] {site.Id},
-                        DateAdded = fileExport.Date,
-                        DateUpdated = fileExport.Date,
-                        DatePublished = fileExport.Date,
-                        IsPublished = true,
-                        AuthorId = fileExport.AuthorId.ToString(),
-                        Blocks = new List<ContentBlock>()
-                    };
-                    if (!string.IsNullOrEmpty(fileExport.Desc))
-                    {
-                        post.Blocks.Add(new TextBlock
-                        {
-                            Id = Guid.NewGuid(), Position = 0, Data = new TextBlockData {Text = fileExport.Desc}
-                        });
-                    }
-
-                    if (!string.IsNullOrEmpty(fileExport.YtId))
-                    {
-                        post.Blocks.Add(new YoutubeBlock
-                        {
-                            Id = Guid.NewGuid(),
-                            Position = 0,
-                            Data = new YoutubeBlockData {YoutubeId = fileExport.YtId}
-                        });
-                    }
-                    else
-                    {
-                        var file = _filesUploader.UploadByPath(fileExport.Link, fileExport.Size, fileExport.Date);
-
-                        post.Blocks.Add(
-                            new FileBlock {Id = Guid.NewGuid(), Position = 0, Data = new FileBlockData {File = file}});
-                    }
-
-                    var cat = data.FilesCats.First(c => c.Id == fileExport.CatId);
-                    var tags = fileCatsMap[cat];
-                    post.TagIds = tags.Select(t => t.Id).ToArray();
-
-                    if (cat.GameId > 0)
-                    {
-                        var game = data.Games.FirstOrDefault(g => g.Id == cat.GameId);
-                        if (game != null)
-                        {
-                            post.SectionIds = new[] {_gamesMap[game.Id]};
-                        }
-                    }
-
-                    if (cat.DeveloperId > 0)
-                    {
-                        var developer = data.Developers.FirstOrDefault(g => g.Id == cat.DeveloperId);
-                        if (developer != null)
-                        {
-                            post.SectionIds = new[] {_developersMap[developer.Id]};
-                        }
-                    }
-
-                    if (cat.TopicId > 0)
-                    {
-                        var topic = data.Topics.FirstOrDefault(g => g.Id == cat.TopicId);
-                        if (topic != null)
-                        {
-                            post.SectionIds = new[] {_developersMap[topic.Id]};
-                        }
-                    }
-
-                    posts.Add(post);
-                    RegisterRedirect(fileExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
+                        Id = Guid.NewGuid(), Position = 0, Data = new TextBlockData {Text = fileExport.Desc}
+                    });
                 }
+
+                if (!string.IsNullOrEmpty(fileExport.YtId))
+                {
+                    post.Blocks.Add(new YoutubeBlock
+                    {
+                        Id = Guid.NewGuid(), Position = 0, Data = new YoutubeBlockData {YoutubeId = fileExport.YtId}
+                    });
+                }
+                else
+                {
+                    var file = _filesUploader.UploadByPath(fileExport.Link, fileExport.Size, fileExport.Date);
+
+                    post.Blocks.Add(
+                        new FileBlock {Id = Guid.NewGuid(), Position = 0, Data = new FileBlockData {File = file}});
+                }
+
+                var cat = data.FilesCats.First(c => c.Id == fileExport.CatId);
+                var tags = fileCatsMap[cat];
+                post.TagIds = tags.Select(t => t.Id).ToArray();
+
+                if (cat.GameId > 0)
+                {
+                    var game = data.Games.FirstOrDefault(g => g.Id == cat.GameId);
+                    if (game != null)
+                    {
+                        post.SectionIds = new[] {_gamesMap[game.Id].Id};
+                        post.SiteIds = _gamesMap[game.Id].SiteIds;
+                    }
+                }
+
+                if (cat.DeveloperId > 0)
+                {
+                    var developer = data.Developers.FirstOrDefault(g => g.Id == cat.DeveloperId);
+                    if (developer != null)
+                    {
+                        post.SectionIds = new[] {_developersMap[developer.Id].Id};
+                        post.SiteIds = _developersMap[developer.Id].SiteIds;
+                    }
+                }
+
+                if (cat.TopicId > 0)
+                {
+                    var topic = data.Topics.FirstOrDefault(g => g.Id == cat.TopicId);
+                    if (topic != null)
+                    {
+                        post.SectionIds = new[] {_topicsMap[topic.Id].Id};
+                        post.SiteIds = _topicsMap[topic.Id].SiteIds;
+                    }
+                }
+
+                posts.Add(post);
+                RegisterRedirect(fileExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
             }
         }
 
@@ -339,106 +372,105 @@ namespace BioEngine.BRC.Importer
                 foreach (var picsGroup in pics.GroupBy(p => p.Date.Date))
                 {
                     var url = $"gallery_{picsGroup.First().Id.ToString()}";
-                    if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
+                    var post = new Post
                     {
-                        var post = new Post
+                        Id = Guid.NewGuid(),
+                        Url = url,
+                        Title = cat.Title,
+                        DateAdded = picsGroup.First().Date,
+                        DateUpdated = picsGroup.First().Date,
+                        DatePublished = picsGroup.First().Date,
+                        IsPublished = true,
+                        AuthorId = picsGroup.First().AuthorId.ToString(),
+                        Blocks = new List<ContentBlock>()
+                    };
+
+                    foreach (var galleryPicExport in picsGroup)
+                    {
+                        var pictures = new List<StorageItem>();
+                        foreach (var picFile in galleryPicExport.Files)
                         {
-                            Id = Guid.NewGuid(),
-                            Url = url,
-                            Title = cat.Title,
-                            SiteIds = new[] {site.Id},
-                            DateAdded = picsGroup.First().Date,
-                            DateUpdated = picsGroup.First().Date,
-                            DatePublished = picsGroup.First().Date,
-                            IsPublished = true,
-                            AuthorId = picsGroup.First().AuthorId.ToString(),
-                            Blocks = new List<ContentBlock>()
-                        };
+                            var pic = await _filesUploader.UploadFromUrlAsync(picFile.Url,
+                                $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
+                                picFile.FileName);
+                            if (pic != null)
+                            {
+                                pictures.Add(pic);
+                            }
+                        }
 
-                        foreach (var galleryPicExport in picsGroup)
+                        if (pictures.Count == 1)
                         {
-                            var pictures = new List<StorageItem>();
-                            foreach (var picFile in galleryPicExport.Files)
+                            var block = new PictureBlock
                             {
-                                var pic = await _filesUploader.UploadFromUrlAsync(picFile.Url,
-                                    $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
-                                    picFile.FileName);
-                                if (pic != null)
-                                {
-                                    pictures.Add(pic);
-                                }
-                            }
-
-                            if (pictures.Count == 1)
+                                Id = Guid.NewGuid(), Position = 1, Data = new PictureBlockData()
+                            };
+                            var picFile = pictures[0];
+                            var pic = await _filesUploader.UploadFromUrlAsync(picFile.PublicUri.ToString(),
+                                $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
+                                picFile.FileName);
+                            if (pic != null)
                             {
-                                var block = new PictureBlock
-                                {
-                                    Id = Guid.NewGuid(), Position = 1, Data = new PictureBlockData()
-                                };
-                                var picFile = pictures[0];
-                                var pic = await _filesUploader.UploadFromUrlAsync(picFile.PublicUri.ToString(),
-                                    $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}",
-                                    picFile.FileName);
-                                if (pic != null)
-                                {
-                                    block.Data.Picture = pic;
-                                    post.Blocks.Add(block);
-                                }
-                            }
-                            else
-                            {
-                                var block = new GalleryBlock
-                                {
-                                    Id = Guid.NewGuid(), Position = 1, Data = new GalleryBlockData()
-                                };
-
-                                block.Data.Pictures = pictures.ToArray();
+                                block.Data.Picture = pic;
                                 post.Blocks.Add(block);
                             }
-
-                            if (!string.IsNullOrEmpty(galleryPicExport.Desc))
-                            {
-                                post.Blocks.Add(new TextBlock
-                                {
-                                    Id = Guid.NewGuid(),
-                                    Position = 0,
-                                    Data = new TextBlockData {Text = galleryPicExport.Desc}
-                                });
-                            }
                         }
-
-                        post.TagIds = tags.Select(t => t.Id).ToArray();
-
-                        if (cat.GameId > 0)
+                        else
                         {
-                            var game = data.Games.FirstOrDefault(g => g.Id == cat.GameId);
-                            if (game != null)
+                            var block = new GalleryBlock
                             {
-                                post.SectionIds = new[] {_gamesMap[game.Id]};
-                            }
+                                Id = Guid.NewGuid(), Position = 1, Data = new GalleryBlockData()
+                            };
+
+                            block.Data.Pictures = pictures.ToArray();
+                            post.Blocks.Add(block);
                         }
 
-                        if (cat.DeveloperId > 0)
+                        if (!string.IsNullOrEmpty(galleryPicExport.Desc))
                         {
-                            var developer = data.Developers.FirstOrDefault(g => g.Id == cat.DeveloperId);
-                            if (developer != null)
+                            post.Blocks.Add(new TextBlock
                             {
-                                post.SectionIds = new[] {_developersMap[developer.Id]};
-                            }
+                                Id = Guid.NewGuid(),
+                                Position = 0,
+                                Data = new TextBlockData {Text = galleryPicExport.Desc}
+                            });
                         }
-
-                        if (cat.TopicId > 0)
-                        {
-                            var topic = data.Topics.FirstOrDefault(g => g.Id == cat.TopicId);
-                            if (topic != null)
-                            {
-                                post.SectionIds = new[] {_developersMap[topic.Id]};
-                            }
-                        }
-
-                        posts.Add(post);
-                        RegisterRedirect(cat.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                     }
+
+                    post.TagIds = tags.Select(t => t.Id).ToArray();
+
+                    if (cat.GameId > 0)
+                    {
+                        var game = data.Games.FirstOrDefault(g => g.Id == cat.GameId);
+                        if (game != null)
+                        {
+                            post.SectionIds = new[] {_gamesMap[game.Id].Id};
+                            post.SiteIds = _gamesMap[game.Id].SiteIds;
+                        }
+                    }
+
+                    if (cat.DeveloperId > 0)
+                    {
+                        var developer = data.Developers.FirstOrDefault(g => g.Id == cat.DeveloperId);
+                        if (developer != null)
+                        {
+                            post.SectionIds = new[] {_developersMap[developer.Id].Id};
+                            post.SiteIds = _developersMap[developer.Id].SiteIds;
+                        }
+                    }
+
+                    if (cat.TopicId > 0)
+                    {
+                        var topic = data.Topics.FirstOrDefault(g => g.Id == cat.TopicId);
+                        if (topic != null)
+                        {
+                            post.SectionIds = new[] {_topicsMap[topic.Id].Id};
+                            post.SiteIds = _topicsMap[topic.Id].SiteIds;
+                        }
+                    }
+
+                    posts.Add(post);
+                    RegisterRedirect(cat.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
             }
         }
@@ -477,25 +509,125 @@ namespace BioEngine.BRC.Importer
             foreach (var articleExport in data.Articles)
             {
                 var url = $"{articleExport.Url}_{articleExport.Id.ToString()}";
-                if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
+                var post = new Post
                 {
-                    var post = new Post
+                    Id = Guid.NewGuid(),
+                    Url = url,
+                    Title = articleExport.Title,
+                    DateAdded = articleExport.Date,
+                    DateUpdated = articleExport.Date,
+                    DatePublished = articleExport.Date,
+                    IsPublished = articleExport.Pub == 1,
+                    AuthorId = articleExport.AuthorId.ToString(),
+                    Blocks = new List<ContentBlock>()
+                };
+
+                var blocks = await GetBlocksAsync(articleExport.Text, data,
+                    $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}");
+
+                foreach (var block in blocks)
+                {
+                    block.Position = post.Blocks.Count;
+                    post.Blocks.Add(block);
+                    if (post.Blocks.Count == 5 && blocks.Count > 7)
                     {
-                        Id = Guid.NewGuid(),
-                        Url = url,
-                        Title = articleExport.Title,
-                        SiteIds = new[] {site.Id},
-                        DateAdded = articleExport.Date,
-                        DateUpdated = articleExport.Date,
-                        DatePublished = articleExport.Date,
-                        IsPublished = articleExport.Pub == 1,
-                        AuthorId = articleExport.AuthorId.ToString(),
-                        Blocks = new List<ContentBlock>()
-                    };
+                        post.Blocks.Add(new CutBlock
+                        {
+                            Position = post.Blocks.Count,
+                            Id = Guid.NewGuid(),
+                            Data = new CutBlockData {ButtonText = "Читать дальше"}
+                        });
+                    }
+                }
 
-                    var blocks = await GetBlocksAsync(articleExport.Text, data,
-                        $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}");
+                var cat = data.ArticlesCats.First(c => c.Id == articleExport.CatId);
+                var tags = articleCatsMap[cat];
+                post.TagIds = tags.Select(t => t.Id).ToArray();
 
+                if (cat.GameId > 0)
+                {
+                    var game = data.Games.FirstOrDefault(g => g.Id == cat.GameId);
+                    if (game != null)
+                    {
+                        post.SectionIds = new[] {_gamesMap[game.Id].Id};
+                        post.SiteIds = _gamesMap[game.Id].SiteIds;
+                    }
+                }
+
+                if (cat.DeveloperId > 0)
+                {
+                    var developer = data.Developers.FirstOrDefault(g => g.Id == cat.DeveloperId);
+                    if (developer != null)
+                    {
+                        post.SectionIds = new[] {_developersMap[developer.Id].Id};
+                        post.SiteIds = _developersMap[developer.Id].SiteIds;
+                    }
+                }
+
+                if (cat.TopicId > 0)
+                {
+                    var topic = data.Topics.FirstOrDefault(g => g.Id == cat.TopicId);
+                    if (topic != null)
+                    {
+                        post.SectionIds = new[] {_topicsMap[topic.Id].Id};
+                        post.SiteIds = _topicsMap[topic.Id].SiteIds;
+                    }
+                }
+
+                posts.Add(post);
+                RegisterRedirect(articleExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
+            }
+        }
+
+        private async Task ImportNewsAsync(Export data, Site site, List<Post> posts,
+            Dictionary<NewsExport, Post> newsMap)
+        {
+            foreach (var newsExport in data.News.OrderByDescending(n => n.Id))
+            {
+                var url = $"{newsExport.Url}_{newsExport.Id.ToString()}";
+                var post = new Post
+                {
+                    Id = Guid.NewGuid(),
+                    Url = url,
+                    Title = newsExport.Title,
+                    DateAdded = newsExport.Date,
+                    DateUpdated = newsExport.LastChangeDate,
+                    DatePublished = newsExport.LastChangeDate,
+                    IsPublished = newsExport.Pub == 1,
+                    AuthorId = newsExport.AuthorId.ToString(),
+                    Blocks = new List<ContentBlock>()
+                };
+
+                var uploadPath = $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}";
+                var blocks = await GetBlocksAsync(newsExport.ShortText, data, uploadPath);
+                if (!string.IsNullOrEmpty(newsExport.AddText))
+                {
+                    foreach (var block in blocks)
+                    {
+                        block.Position = post.Blocks.Count;
+                        post.Blocks.Add(block);
+                    }
+
+                    var addBlocks = await GetBlocksAsync(newsExport.AddText, data, uploadPath);
+
+                    if (addBlocks.Any())
+                    {
+                        post.Blocks.Add(new CutBlock
+                        {
+                            Position = post.Blocks.Count,
+                            Id = Guid.NewGuid(),
+                            Data = new CutBlockData {ButtonText = "Читать дальше"}
+                        });
+
+                        foreach (var block in addBlocks)
+                        {
+                            block.Position = post.Blocks.Count;
+                            post.Blocks.Add(block);
+                        }
+                    }
+                }
+                else
+                {
                     foreach (var block in blocks)
                     {
                         block.Position = post.Blocks.Count;
@@ -510,132 +642,30 @@ namespace BioEngine.BRC.Importer
                             });
                         }
                     }
-
-                    var cat = data.ArticlesCats.First(c => c.Id == articleExport.CatId);
-                    var tags = articleCatsMap[cat];
-                    post.TagIds = tags.Select(t => t.Id).ToArray();
-
-                    if (cat.GameId > 0)
-                    {
-                        var game = data.Games.FirstOrDefault(g => g.Id == cat.GameId);
-                        if (game != null)
-                        {
-                            post.SectionIds = new[] {_gamesMap[game.Id]};
-                        }
-                    }
-
-                    if (cat.DeveloperId > 0)
-                    {
-                        var developer = data.Developers.FirstOrDefault(g => g.Id == cat.DeveloperId);
-                        if (developer != null)
-                        {
-                            post.SectionIds = new[] {_developersMap[developer.Id]};
-                        }
-                    }
-
-                    if (cat.TopicId > 0)
-                    {
-                        var topic = data.Topics.FirstOrDefault(g => g.Id == cat.TopicId);
-                        if (topic != null)
-                        {
-                            post.SectionIds = new[] {_developersMap[topic.Id]};
-                        }
-                    }
-
-                    posts.Add(post);
-                    RegisterRedirect(articleExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
                 }
-            }
-        }
 
-        private async Task ImportNewsAsync(Export data, Site site, List<Post> posts,
-            Dictionary<NewsExport, Post> newsMap)
-        {
-            foreach (var newsExport in data.News.OrderByDescending(n => n.Id))
-            {
-                var url = $"{newsExport.Url}_{newsExport.Id.ToString()}";
-                if (!await _dbContext.ContentItems.AnyAsync(p => p.Url == url))
+                if (newsExport.DeveloperId > 0)
                 {
-                    var post = new Post
-                    {
-                        Id = Guid.NewGuid(),
-                        Url = url,
-                        Title = newsExport.Title,
-                        SiteIds = new[] {site.Id},
-                        DateAdded = newsExport.Date,
-                        DateUpdated = newsExport.LastChangeDate,
-                        DatePublished = newsExport.LastChangeDate,
-                        IsPublished = newsExport.Pub == 1,
-                        AuthorId = newsExport.AuthorId.ToString(),
-                        Blocks = new List<ContentBlock>()
-                    };
-
-                    var uploadPath = $"posts/{post.DateAdded.Year.ToString()}/{post.DateAdded.Month.ToString()}";
-                    var blocks = await GetBlocksAsync(newsExport.ShortText, data, uploadPath);
-                    if (!string.IsNullOrEmpty(newsExport.AddText))
-                    {
-                        foreach (var block in blocks)
-                        {
-                            block.Position = post.Blocks.Count;
-                            post.Blocks.Add(block);
-                        }
-
-                        var addBlocks = await GetBlocksAsync(newsExport.AddText, data, uploadPath);
-
-                        if (addBlocks.Any())
-                        {
-                            post.Blocks.Add(new CutBlock
-                            {
-                                Position = post.Blocks.Count,
-                                Id = Guid.NewGuid(),
-                                Data = new CutBlockData {ButtonText = "Читать дальше"}
-                            });
-
-                            foreach (var block in addBlocks)
-                            {
-                                block.Position = post.Blocks.Count;
-                                post.Blocks.Add(block);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        foreach (var block in blocks)
-                        {
-                            block.Position = post.Blocks.Count;
-                            post.Blocks.Add(block);
-                            if (post.Blocks.Count == 5 && blocks.Count > 7)
-                            {
-                                post.Blocks.Add(new CutBlock
-                                {
-                                    Position = post.Blocks.Count,
-                                    Id = Guid.NewGuid(),
-                                    Data = new CutBlockData {ButtonText = "Читать дальше"}
-                                });
-                            }
-                        }
-                    }
-
-                    if (newsExport.DeveloperId > 0)
-                    {
-                        post.SectionIds = new[] {_developersMap[newsExport.DeveloperId.Value]};
-                    }
-
-                    if (newsExport.GameId > 0)
-                    {
-                        post.SectionIds = new[] {_gamesMap[newsExport.GameId.Value]};
-                    }
-
-                    if (newsExport.TopicId > 0)
-                    {
-                        post.SectionIds = new[] {_topicsMap[newsExport.TopicId.Value]};
-                    }
-
-
-                    posts.Add(post);
-                    newsMap.Add(newsExport, post);
-                    RegisterRedirect(newsExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
+                    post.SectionIds = new[] {_developersMap[newsExport.DeveloperId.Value].Id};
+                    post.SiteIds = _developersMap[newsExport.DeveloperId.Value].SiteIds;
                 }
+
+                if (newsExport.GameId > 0)
+                {
+                    post.SectionIds = new[] {_gamesMap[newsExport.GameId.Value].Id};
+                    post.SiteIds = _gamesMap[newsExport.GameId.Value].SiteIds;
+                }
+
+                if (newsExport.TopicId > 0)
+                {
+                    post.SectionIds = new[] {_topicsMap[newsExport.TopicId.Value].Id};
+                    post.SiteIds = _topicsMap[newsExport.TopicId.Value].SiteIds;
+                }
+
+
+                posts.Add(post);
+                newsMap.Add(newsExport, post);
+                RegisterRedirect(newsExport.FullUrl, _linkGenerator.GeneratePublicUrl(post, site).ToString());
             }
         }
 
@@ -673,7 +703,7 @@ namespace BioEngine.BRC.Importer
                     await _dbContext.AddAsync(topic);
                 }
 
-                _topicsMap.Add(topicExport.Id, topic.Id);
+                _topicsMap.Add(topicExport.Id, topic);
             }
         }
 
@@ -701,7 +731,7 @@ namespace BioEngine.BRC.Importer
                         $"games/{game.DateAdded.Year.ToString()}/{game.DateAdded.Month.ToString()}");
                     if (gameExport.DeveloperId > 0 && _developersMap.ContainsKey(gameExport.DeveloperId))
                     {
-                        game.ParentId = _developersMap[gameExport.DeveloperId];
+                        game.ParentId = _developersMap[gameExport.DeveloperId].Id;
                     }
 
                     await _dbContext.AddAsync(game);
@@ -713,7 +743,7 @@ namespace BioEngine.BRC.Importer
                     }
                 }
 
-                _gamesMap.Add(gameExport.Id, game.Id);
+                _gamesMap.Add(gameExport.Id, game);
                 RegisterRedirect(gameExport.FullUrl, _linkGenerator.GeneratePublicUrl(game, site).ToString());
             }
         }
@@ -743,10 +773,11 @@ namespace BioEngine.BRC.Importer
 
                     await _dbContext.AddAsync(developer);
                     RegisterRedirect(dev.FullUrl,
-                        _linkGenerator.GenerateUrl(BrcDomainRoutes.DeveloperPosts, new {url = developer.Url}, site).ToString());
+                        _linkGenerator.GenerateUrl(BrcDomainRoutes.DeveloperPosts, new {url = developer.Url}, site)
+                            .ToString());
                 }
 
-                _developersMap.Add(dev.Id, developer.Id);
+                _developersMap.Add(dev.Id, developer);
             }
         }
 

@@ -6,6 +6,7 @@ using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
 using BioEngine.Core.Storage;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BioEngine.BRC.Importer
 {
@@ -15,14 +16,16 @@ namespace BioEngine.BRC.Importer
         private readonly IStorage _storage;
         private readonly BioContext _dbContext;
         private readonly ILogger<FilesUploader> _logger;
+        private readonly ImporterOptions _options;
 
         public FilesUploader(IHttpClientFactory httpClientFactory, IStorage storage, BioContext dbContext,
-            ILogger<FilesUploader> logger)
+            ILogger<FilesUploader> logger, IOptions<ImporterOptions> options)
         {
             _httpClientFactory = httpClientFactory;
             _storage = storage;
             _dbContext = dbContext;
             _logger = logger;
+            _options = options.Value;
         }
 
         public async Task<StorageItem> UploadFromUrlAsync(string url, string path, string fileName = null)
@@ -33,6 +36,11 @@ namespace BioEngine.BRC.Importer
                 try
                 {
                     _logger.LogInformation($"Downloading file from url {url}");
+                    if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+                    {
+                        url = $"{_options.FilesBaseUrl}/{url}";
+                    }
+
                     var fileData = await _httpClientFactory.CreateClient().GetByteArrayAsync(url);
                     var item = await _storage.SaveFileAsync(fileData, fileName, path);
                     return item;
