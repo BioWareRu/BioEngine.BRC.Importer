@@ -36,7 +36,7 @@ namespace BioEngine.BRC.Importer
                 foreach ((string from, string to) in _options.FilePathRewrites)
                 {
                     if (!url.StartsWith(from)) continue;
-                    url = url.Replace(from, to);
+                    url = ReplaceFirst(url, from, to);
                     break;
                 }
 
@@ -54,6 +54,17 @@ namespace BioEngine.BRC.Importer
             }
 
             return null;
+        }
+
+        public string ReplaceFirst(string text, string search, string replace)
+        {
+            int pos = text.IndexOf(search, StringComparison.Ordinal);
+            if (pos < 0)
+            {
+                return text;
+            }
+
+            return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
         }
 
         public StorageItem UploadByPath(string path, int size, DateTimeOffset date)
