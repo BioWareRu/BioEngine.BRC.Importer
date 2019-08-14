@@ -51,7 +51,16 @@ namespace BioEngine.BRC.Importer
 
                         options.SiteId = Guid.Parse(hostBuilder.Configuration["BRC_IMPORT_SITE_ID"]);
                         options.OutputPath = hostBuilder.Configuration["BRC_IMPORT_OUTPUT_PATH"];
-                        options.FilesBaseUrl = hostBuilder.Configuration["BRC_IMPORT_FILE_BASE_URL"];
+                        if (!string.IsNullOrEmpty(hostBuilder.Configuration["BRC_REWRITES_FILE_PATH"]))
+                        {
+                            var json = File.ReadAllText(hostBuilder.Configuration["BRC_REWRITES_FILE_PATH"]);
+                            options.FilePathRewrites = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                        }
+                        else
+                        {
+                            options.FilePathRewrites = new Dictionary<string, string>();
+                        }
+
                         bool.TryParse(hostBuilder.Configuration["BRC_IMPORT_NEWS"], out var importNews);
                         options.ImportNews = importNews;
                         bool.TryParse(hostBuilder.Configuration["BRC_IMPORT_ARTICLES"], out var importArticles);

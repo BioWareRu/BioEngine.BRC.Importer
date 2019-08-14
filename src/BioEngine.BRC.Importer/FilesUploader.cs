@@ -33,14 +33,16 @@ namespace BioEngine.BRC.Importer
             fileName ??= Path.GetFileName(url);
             if (!string.IsNullOrEmpty(fileName))
             {
+                foreach ((string from, string to) in _options.FilePathRewrites)
+                {
+                    if (!url.StartsWith(from)) continue;
+                    url = url.Replace(from, to);
+                    break;
+                }
+
+                _logger.LogInformation($"Downloading file from url {url}");
                 try
                 {
-                    _logger.LogInformation($"Downloading file from url {url}");
-                    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
-                    {
-                        url = $"{_options.FilesBaseUrl}/{url}";
-                    }
-
                     var fileData = await _httpClientFactory.CreateClient().GetByteArrayAsync(url);
                     var item = await _storage.SaveFileAsync(fileData, fileName, path);
                     return item;
