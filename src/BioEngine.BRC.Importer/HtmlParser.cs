@@ -212,6 +212,9 @@ namespace BioEngine.BRC.Importer
                     case "del":
                     case "dt":
                     case "s":
+                    case "hr":
+                    case "sup":
+                    case "sub":
                     case "noindex":
                     case "style":
                     case "font":
