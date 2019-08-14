@@ -36,7 +36,7 @@ namespace BioEngine.BRC.Importer
                 try
                 {
                     _logger.LogInformation($"Downloading file from url {url}");
-                    if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+                    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
                     {
                         url = $"{_options.FilesBaseUrl}/{url}";
                     }
