@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace BioEngine.BRC.Importer.Tests
 {
-    public class ImporterTestScope : BaseTestScope
+    public class ImporterTestScope : BaseTestScope<ImporterTestScope>
     {
         protected override Core.BioEngine ConfigureBioEngine(Core.BioEngine bioEngine)
         {
