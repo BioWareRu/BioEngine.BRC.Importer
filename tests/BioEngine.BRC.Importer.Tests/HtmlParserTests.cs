@@ -118,7 +118,7 @@ namespace BioEngine.BRC.Importer.Tests
             var parser = scope.Get<HtmlParser>();
             var blocks = await parser.ParseAsync(html, "/", new List<GalleryExport>());
             Assert.NotEmpty(blocks);
-            Assert.Equal(1, blocks.Count);
+            Assert.Single(blocks);
         }
     }
 }
