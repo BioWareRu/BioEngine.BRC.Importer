@@ -14,6 +14,6 @@ namespace BioEngine.BRC.Importer
         public bool ImportArticles { get; set; }
         public bool ImportGallery { get; set; }
         public bool ImportFiles { get; set; }
-        public Dictionary<string, string> FilePathRewrites { get; set; }
+        public Dictionary<string, string> FilePathRewrites { get; set; } = new Dictionary<string, string>();
     }
 }
