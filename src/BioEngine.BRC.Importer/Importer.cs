@@ -8,6 +8,7 @@ using BioEngine.BRC.Domain.Entities;
 using BioEngine.Core.DB;
 using BioEngine.Core.Entities;
 using BioEngine.Core.Entities.Blocks;
+using BioEngine.Core.Helpers;
 using BioEngine.Core.Posts.Entities;
 using BioEngine.Core.Properties;
 using BioEngine.Core.Routing;
@@ -107,7 +108,7 @@ namespace BioEngine.BRC.Importer
                 if (_options.ImportFiles)
                 {
                     _logger.LogWarning("Files");
-                    await ImportFilesAsync(data, site, posts);
+                    ImportFiles(data, site, posts);
                 }
 
                 // pictures
@@ -121,14 +122,21 @@ namespace BioEngine.BRC.Importer
                 {
                     var urls = posts.Select(p => p.Url).ToArray();
                     var existedPosts = await _dbContext.Set<Post>().Where(p => urls.Contains(p.Url))
-                        .Include(p => p.Blocks)
                         .ToListAsync();
+                    var blocks = await BlocksHelper.GetBlocksAsync(existedPosts.ToArray(), _dbContext);
+                    foreach (var existedPost in existedPosts)
+                    {
+                        existedPost.Blocks = blocks[existedPost.Id];
+                    }
+
+                    var toRemove = new List<ContentBlock>();
                     foreach (var post in posts.OrderBy(p => p.DateAdded))
                     {
                         var version = new ContentVersion {Id = Guid.NewGuid()};
                         var existedPost = existedPosts.FirstOrDefault(p => p.Url == post.Url);
                         if (existedPost != null)
                         {
+                            toRemove.AddRange(existedPost.Blocks);
                             existedPost.Blocks = new List<ContentBlock>();
                             foreach (ContentBlock block in post.Blocks)
                             {
@@ -141,6 +149,7 @@ namespace BioEngine.BRC.Importer
                             existedPost.SectionIds = post.SectionIds;
                             existedPost.SiteIds = post.SiteIds;
                             _dbContext.Update(existedPost);
+                            _dbContext.Add(existedPost.Blocks);
                             version.ContentId = existedPost.Id;
                             version.SetContent(existedPost);
                         }
@@ -153,6 +162,11 @@ namespace BioEngine.BRC.Importer
 
                         version.ChangeAuthorId = post.AuthorId;
                         await _dbContext.AddAsync(version);
+                    }
+
+                    if (toRemove.Any())
+                    {
+                        _dbContext.Blocks.RemoveRange(toRemove);
                     }
 
                     _logger.LogWarning("Properties");
@@ -232,7 +246,7 @@ namespace BioEngine.BRC.Importer
             return tag;
         }
 
-        private async Task ImportFilesAsync(Export data, Site site, List<Post> posts)
+        private void ImportFiles(Export data, Site site, List<Post> posts)
         {
             var fileCatsMap = new Dictionary<FileCatExport, List<Tag>>();
             foreach (var cat in data.FilesCats)
