@@ -753,7 +753,7 @@ namespace BioEngine.BRC.Importer
                     if (!string.IsNullOrEmpty(gameExport.Keywords))
                     {
                         await _propertiesProvider.SetAsync(
-                            new SeoPropertiesSet {Keywords = gameExport.Keywords, Description = gameExport.Desc}, game);
+                            new SeoContentPropertiesSet {Keywords = gameExport.Keywords, Description = gameExport.Desc}, game);
                     }
                 }
 
