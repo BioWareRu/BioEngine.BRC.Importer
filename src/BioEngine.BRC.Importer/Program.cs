@@ -77,7 +77,7 @@ namespace BioEngine.BRC.Importer
                 .AddModule<PostsApiModule>()
                 .AddElasticSearch()
                 .AddS3Storage()
-                .AddLogging(LogEventLevel.Information, LogEventLevel.Information, loggerConfiguration =>
+                .AddLogging(LogEventLevel.Information, LogEventLevel.Information, (loggerConfiguration, env) =>
                 {
                     loggerConfiguration.MinimumLevel.Override("Microsoft", LogEventLevel.Warning);
                     loggerConfiguration.MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning);
