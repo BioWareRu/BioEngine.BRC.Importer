@@ -89,16 +89,7 @@ namespace BioEngine.BRC.Importer
                         throw new ArgumentException($"Can't parse IPB url; {configuration["BE_IPB_URL"]}");
                     }
 
-                    return new IPBSiteModuleConfig(ipbUrl)
-                    {
-                        ApiClientId = configuration["BE_IPB_OAUTH_CLIENT_ID"],
-                        ApiClientSecret = configuration["BE_IPB_OAUTH_CLIENT_SECRET"],
-                        CallbackPath = "/login/ipb",
-                        AuthorizationEndpoint = configuration["BE_IPB_AUTHORIZATION_ENDPOINT"],
-                        TokenEndpoint = configuration["BE_IPB_TOKEN_ENDPOINT"],
-                        ApiReadonlyKey = configuration["BE_IPB_API_READONLY_KEY"],
-                        DataProtectionPath = configuration["BE_IPB_DATA_PROTECTION_PATH"]
-                    };
+                    return new IPBSiteModuleConfig(ipbUrl) {ApiReadonlyKey = configuration["BE_IPB_API_READONLY_KEY"],};
                 })
                 .AddModule<SeoModule>()
                 .AddModule<TwitterModule>()
