@@ -31,7 +31,6 @@ namespace BioEngine.BRC.Importer
         private readonly FilesUploader _filesUploader;
         private readonly PropertiesProvider _propertiesProvider;
         private readonly HtmlParser _htmlParser;
-        private readonly BioEntitiesManager _entitiesManager;
         private readonly LinkGenerator _linkGenerator;
         private Dictionary<int, Developer> _developersMap;
         private Dictionary<int, Game> _gamesMap;
@@ -41,7 +40,7 @@ namespace BioEngine.BRC.Importer
         private readonly ImporterOptions _options;
 
         public Importer(BioContext dbContext, ILogger<Importer> logger, FilesUploader filesUploader,
-            PropertiesProvider propertiesProvider, HtmlParser htmlParser, BioEntitiesManager entitiesManager,
+            PropertiesProvider propertiesProvider, HtmlParser htmlParser,
             LinkGenerator linkGenerator, IOptions<ImporterOptions> options)
         {
             _dbContext = dbContext;
@@ -49,7 +48,6 @@ namespace BioEngine.BRC.Importer
             _filesUploader = filesUploader;
             _propertiesProvider = propertiesProvider;
             _htmlParser = htmlParser;
-            _entitiesManager = entitiesManager;
             _linkGenerator = linkGenerator;
             _options = options.Value;
         }
