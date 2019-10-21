@@ -74,7 +74,7 @@ namespace BioEngine.BRC.Importer
                 .AddPostgresDb()
                 .AddBrcDomain()
                 .AddModule<PagesApiModule>()
-                .AddModule<PostsApiModule>()
+                .AddModule<PostsApiModule<string>>()
                 .AddElasticSearch()
                 .AddS3Storage()
                 .AddLogging(LogEventLevel.Information, LogEventLevel.Information, (loggerConfiguration, env) =>

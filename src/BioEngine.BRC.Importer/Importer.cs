@@ -87,8 +87,8 @@ namespace BioEngine.BRC.Importer
                 _topicsMap = new Dictionary<int, Topic>();
                 await ImportTopicsAsync(data, site);
 
-                var posts = new List<Post>();
-                var newsMap = new Dictionary<NewsExport, Post>();
+                var posts = new List<Post<string>>();
+                var newsMap = new Dictionary<NewsExport, Post<string>>();
                 if (_options.ImportNews)
                 {
                     _logger.LogWarning("News");
@@ -119,7 +119,7 @@ namespace BioEngine.BRC.Importer
                 if (posts.Any())
                 {
                     var urls = posts.Select(p => p.Url).ToArray();
-                    var existedPosts = await _dbContext.Set<Post>().Where(p => urls.Contains(p.Url))
+                    var existedPosts = await _dbContext.Set<Post<string>>().Where(p => urls.Contains(p.Url))
                         .ToListAsync();
                     var blocks = await BlocksHelper.GetBlocksAsync(existedPosts.ToArray(), _dbContext);
                     foreach (var existedPost in existedPosts)
@@ -130,7 +130,7 @@ namespace BioEngine.BRC.Importer
                     var toRemove = new List<ContentBlock>();
                     foreach (var post in posts.OrderBy(p => p.DateAdded))
                     {
-                        var version = new ContentVersion {Id = Guid.NewGuid()};
+                        var version = new PostVersion<string> {Id = Guid.NewGuid()};
                         var existedPost = existedPosts.FirstOrDefault(p => p.Url == post.Url);
                         if (existedPost != null)
                         {
@@ -174,7 +174,7 @@ namespace BioEngine.BRC.Importer
                         {
                             _dbContext.Add(new TwitterPublishRecord
                             {
-                                Type = _entitiesManager.GetKey(post),
+                                Type = post.GetKey(),
                                 ContentId = post.Id,
                                 TweetId = news.TwitterId.Value,
                                 SiteIds = post.SiteIds
@@ -185,7 +185,7 @@ namespace BioEngine.BRC.Importer
                         {
                             _dbContext.Add(new FacebookPublishRecord
                             {
-                                Type = _entitiesManager.GetKey(post),
+                                Type = post.GetKey(),
                                 ContentId = post.Id,
                                 PostId = news.FacebookId,
                                 SiteIds = post.SiteIds
@@ -196,7 +196,7 @@ namespace BioEngine.BRC.Importer
                         {
                             _dbContext.Add(new IPBPublishRecord
                             {
-                                Type = _entitiesManager.GetKey(post),
+                                Type = post.GetKey(),
                                 ContentId = post.Id,
                                 TopicId = news.ForumTopicId.Value,
                                 PostId = news.ForumPostId.Value,
@@ -244,7 +244,7 @@ namespace BioEngine.BRC.Importer
             return tag;
         }
 
-        private void ImportFiles(Export data, Site site, List<Post> posts)
+        private void ImportFiles(Export data, Site site, List<Post<string>> posts)
         {
             var fileCatsMap = new Dictionary<FileCatExport, List<Tag>>();
             foreach (var cat in data.FilesCats)
@@ -279,7 +279,7 @@ namespace BioEngine.BRC.Importer
             foreach (var fileExport in data.Files)
             {
                 var url = $"{fileExport.Url}_{fileExport.Id.ToString()}";
-                var post = new Post
+                var post = new Post<string>
                 {
                     Id = Guid.NewGuid(),
                     Url = url,
@@ -353,7 +353,7 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private async Task ImportGalleryAsync(Export data, Site site, List<Post> posts)
+        private async Task ImportGalleryAsync(Export data, Site site, List<Post<string>> posts)
         {
             foreach (var cat in data.GalleryCats)
             {
@@ -384,7 +384,7 @@ namespace BioEngine.BRC.Importer
                 foreach (var picsGroup in pics.GroupBy(p => p.Date.Date))
                 {
                     var url = $"gallery_{picsGroup.First().Id.ToString()}";
-                    var post = new Post
+                    var post = new Post<string>
                     {
                         Id = Guid.NewGuid(),
                         Url = url,
@@ -487,7 +487,7 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private async Task ImportArticlesAsync(Export data, Site site, List<Post> posts)
+        private async Task ImportArticlesAsync(Export data, Site site, List<Post<string>> posts)
         {
             var articleCatsMap = new Dictionary<ArticleCatExport, List<Tag>>();
             foreach (var cat in data.ArticlesCats)
@@ -521,7 +521,7 @@ namespace BioEngine.BRC.Importer
             foreach (var articleExport in data.Articles)
             {
                 var url = $"{articleExport.Url}_{articleExport.Id.ToString()}";
-                var post = new Post
+                var post = new Post<string>
                 {
                     Id = Guid.NewGuid(),
                     Url = url,
@@ -591,13 +591,13 @@ namespace BioEngine.BRC.Importer
             }
         }
 
-        private async Task ImportNewsAsync(Export data, Site site, List<Post> posts,
-            Dictionary<NewsExport, Post> newsMap)
+        private async Task ImportNewsAsync(Export data, Site site, List<Post<string>> posts,
+            Dictionary<NewsExport, Post<string>> newsMap)
         {
             foreach (var newsExport in data.News.OrderByDescending(n => n.Id))
             {
                 var url = $"{newsExport.Url}_{newsExport.Id.ToString()}";
-                var post = new Post
+                var post = new Post<string>
                 {
                     Id = Guid.NewGuid(),
                     Url = url,
@@ -751,7 +751,8 @@ namespace BioEngine.BRC.Importer
                     if (!string.IsNullOrEmpty(gameExport.Keywords))
                     {
                         await _propertiesProvider.SetAsync(
-                            new SeoContentPropertiesSet {Keywords = gameExport.Keywords, Description = gameExport.Desc}, game);
+                            new SeoContentPropertiesSet {Keywords = gameExport.Keywords, Description = gameExport.Desc},
+                            game);
                     }
                 }
 
@@ -822,7 +823,7 @@ namespace BioEngine.BRC.Importer
             _logger.LogCritical($"Storage items: {(await _dbContext.Set<StorageItem>().CountAsync()).ToString()}");
             _logger.LogCritical($"Tags: {(await _dbContext.Set<Tag>().CountAsync()).ToString()}");
             _logger.LogCritical($"Properties: {(await _dbContext.Set<PropertiesRecord>().CountAsync()).ToString()}");
-            _logger.LogCritical($"Posts: {(await _dbContext.Set<Post>().CountAsync()).ToString()}");
+            _logger.LogCritical($"Posts: {(await _dbContext.Set<Post<string>>().CountAsync()).ToString()}");
             _logger.LogCritical($"Blocks: {(await _dbContext.Set<ContentBlock>().CountAsync()).ToString()}");
         }
 

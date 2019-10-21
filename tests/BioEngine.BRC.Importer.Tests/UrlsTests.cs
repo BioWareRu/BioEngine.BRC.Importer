@@ -15,7 +15,7 @@ namespace BioEngine.BRC.Importer.Tests
         [Fact]
         public void GenerateUrl()
         {
-            var post = new Post
+            var post = new Post<string>
             {
                 Url = "123"
             };
