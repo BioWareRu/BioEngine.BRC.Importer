@@ -43,7 +43,7 @@ namespace BioEngine.BRC.Importer
                 _logger.LogInformation($"Downloading file from url {url}");
                 try
                 {
-                    var fileData = await _httpClientFactory.CreateClient().GetByteArrayAsync(url);
+                    var fileData = await _httpClientFactory.CreateClient().GetStreamAsync(url);
                     var item = await _storage.SaveFileAsync(fileData, fileName, path);
                     return item;
                 }
