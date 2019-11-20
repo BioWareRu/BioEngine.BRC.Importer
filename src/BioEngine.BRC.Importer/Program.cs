@@ -127,8 +127,8 @@ namespace BioEngine.BRC.Importer
 
     public class ImporterStartup : BioEngineApiStartup
     {
-        public ImporterStartup(IConfiguration configuration, IHostEnvironment hostEnvironment) : base(configuration,
-            hostEnvironment)
+        public ImporterStartup(IConfiguration configuration, IHostEnvironment environment) : base(configuration,
+            environment)
         {
         }
 
